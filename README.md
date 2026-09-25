@@ -276,7 +276,7 @@ Output: report PDF, slides, clean repo.
 - [ ] Final report (PDF)
 - [ ] Slides
 - [ ] Repo with README + requirements.txt
-
+ 
 ## Risks
 
 | Risk | Mitigation |
