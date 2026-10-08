@@ -1,52 +1,80 @@
 # US Accidents Severity Prediction
 
-Predict accident **Severity (1–4)** using only info known **when the accident is first reported** (time, location, weather, road features).
+Predict how much a US traffic accident will slow down traffic — **Severity 1 (least) to 4 (most)** — using only
+information known **when the accident is first reported**: time, place, weather and road features.
+Severity means **traffic delay, not injuries**.
 
-- **Dataset:** US Accidents (2016–2023), Moosavi et al., Kaggle. Local file: `US_Accidents_March23_sampled_500k.csv` (500K-row sample, already downloaded).
-- **Task:** multi-class classification, 4 classes, heavily imbalanced (~80% Severity 2, ~2.6% Severity 4).
-- **Main metric:** Macro F1 (dummy baseline ≈ 0.22). Also per-class recall, balanced accuracy.
-- **Models:** Dummy → Logistic Regression → Decision Tree → Random Forest → LightGBM/XGBoost.
+**Midterm scope (CRISP-DM):** business understanding → data understanding → pre-processing → EDA →
+feature engineering → conclusions. No model is trained yet.
+
+- **Data:** US Accidents (2016–2023), Moosavi et al. ([Kaggle](https://www.kaggle.com/datasets/sobhanmoosavi/us-accidents)),
+  licence CC BY-NC-SA 4.0. This repo ships a 500,000-row sample: `US_Accidents_March23_sampled_500k.csv` (Git LFS).
+- **Report:** [`reports/midterm_report.pdf`](reports/midterm_report.pdf)
 - **Seed:** `42` everywhere.
-- **Severity = traffic impact (delay), not injuries.** Never call it "how dangerous".
 
-> **The one rule:** a feature is allowed only if its value is known at the moment the accident is reported. `End_Time`, `End_Lat`, `End_Lng`, `Distance(mi)`, `Description` leak the answer and must be dropped.
+## Where each phase is
 
----
+| Rubric phase | Notebook | Outputs |
+|---|---|---|
+| 1. Business understanding | — (report, section 1) | `reports/midterm_report.pdf` |
+| 2. Data understanding | `notebooks/01_load_and_sample.ipynb` | `data/sample.parquet` |
+| 3. Data pre-processing | `notebooks/02_cleaning.ipynb` | `data/clean.parquet`, `reports/leakage_audit.md`, `reports/cleaning_log.md` |
+| 4. EDA + hypothesis tests | `notebooks/03_eda.ipynb` | `reports/figures/01–12*.png` |
+| 5. Feature engineering | `notebooks/04_features.ipynb` + `src/features.py` | `data/features.parquet`, `reports/data_dictionary.md`, figures 13–14 |
+| 6. Conclusions & next steps | — (report, section 6) | `reports/midterm_report.pdf` |
 
-## Setup
+## Project structure
+
+```
+US_accidents/
+├── US_Accidents_March23_sampled_500k.csv   # raw data (500K-row sample)
+├── notebooks/        # 01 → 04, run in this order
+├── src/features.py   # feature engineering + leakage-safe preprocessor (used by notebook 04)
+├── data/             # generated parquet files (not in git, recreated by the notebooks)
+├── reports/          # report PDF, logs, data dictionary, figures/
+├── run_all.py        # runs all notebooks top to bottom
+└── requirements.txt
+```
+
+## How to run
+
+Needs Python 3.10+ on Linux, macOS, WSL or Google Colab.
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate        # Windows
+source .venv/bin/activate          # Windows (cmd): .venv\Scripts\activate
 pip install -r requirements.txt
+python run_all.py                  # runs notebooks 01 → 04 (~1 min), recreates data/ and reports/
 ```
 
-Put `US_Accidents_March23_sampled_500k.csv` in `data/` (not in git — too big). Select the `.venv` kernel in Jupyter / VS Code.
+Or open the notebooks in Jupyter / VS Code and run them in order (01 → 04). All paths are relative to the
+`notebooks/` folder; no path needs editing.
 
-## How to use this file
+> **Windows note:** on PCs with *Smart App Control* enabled, scikit-learn's compiled files are blocked
+> ("DLL load failed … application control policy"). Notebooks 01–03 still run; notebook 04 needs scikit-learn.
+> Fix: run in WSL (Ubuntu): `sudo apt install python3-venv python3-pip`, then the commands above.
+> This project was run in WSL: `~/venvs/usacc/bin/python run_all.py`.
 
-Each phase below is a ready-to-paste prompt. Run them in order. Don't start a phase until the previous phase's output exists on disk. Paste to Claude:
+---
 
-```
-Do Phase N from README.md
-```
+## Work plan (one prompt per phase)
 
-or copy the prompt block directly.
+Each phase below is a ready-to-paste prompt. Run them in order.
 
 ## Progress
 
 - [x] Phase 1 — Setup
-- [ ] Phase 2 — Load & sample
-- [ ] Phase 3 — Leakage audit
-- [ ] Phase 4 — Cleaning
-- [ ] Phase 5 — EDA
-- [ ] Phase 6 — Feature engineering
+- [x] Phase 2 — Load & sample
+- [x] Phase 3 — Leakage audit
+- [x] Phase 4 — Cleaning
+- [x] Phase 5 — EDA
+- [x] Phase 6 — Feature engineering
 - [ ] Phase 7 — Splits
 - [ ] Phase 8 — Class imbalance
 - [ ] Phase 9 — Modelling & tuning
 - [ ] Phase 10 — Evaluation
 - [ ] Phase 11 — Interpretation
-- [ ] Phase 12 — Report & presentation
+- [ ] Phase 12 — Report & presentation (midterm report done: reports/midterm_report.pdf; slides pending)
 
 ---
 

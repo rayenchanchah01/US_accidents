@@ -1,0 +1,5 @@
+data/
+__pycache__/
+# only the final report PDF is versioned
+*.pdf
+!reports/midterm_report.pdf
