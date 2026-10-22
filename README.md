@@ -6,20 +6,20 @@ This project prepares the [US Accidents (2016–2023)](https://www.kaggle.com/da
 
 > Severity measures the **impact on traffic (delay)**, not injuries.
 
-📄 **Full report:** [`reports/midterm_report.pdf`](reports/midterm_report.pdf)
+**Full report:** [`reports/midterm_report.pdf`](reports/midterm_report.pdf)
 
 ---
 
 ## Key findings
 
-| | Finding |
+| Topic | Finding |
 |---|---|
-| ⚖️ **Imbalance** | 80% of accidents are Severity 2 and only 2.6% are Severity 4, so models are judged with **macro F1**, not accuracy. |
-| 🚫 **Leakage** | 88.5% of Severity 4 descriptions say "closed". End time, distance and description reveal the answer, so they were removed. |
-| 🏢 **Data provider bias** | The strongest link with Severity (Cramér's V = 0.29): Source2 labels 34% of its accidents as Severity 3, Source1 only 4%. |
-| 🛣️ **Road type** | Highway accidents are high-impact (Severity 3–4) **2.5×** more often than others (28% vs 11%). |
-| 🌙 **Time** | Rush hour brings more accidents, but not worse ones. Severity 4 peaks around midnight (5–6% vs 1.6% at 7–8 h). |
-| 🌧️ **Weather** | The effect is real but small: 22% of accidents in rain or storms are high-impact, against 17% in clear weather. |
+| **Imbalance** | 80% of accidents are Severity 2 and only 2.6% are Severity 4, so models are judged with **macro F1**, not accuracy. |
+| **Leakage** | 88.5% of Severity 4 descriptions say "closed". End time, distance and description reveal the answer, so they were removed. |
+| **Data provider bias** | The strongest link with Severity (Cramér's V = 0.29): Source2 labels 34% of its accidents as Severity 3, Source1 only 4%. |
+| **Road type** | Highway accidents are high-impact (Severity 3–4) **2.5×** more often than others (28% vs 11%). |
+| **Time** | Rush hour brings more accidents, but not worse ones. Severity 4 peaks around midnight (5–6% vs 1.6% at 7–8 h). |
+| **Weather** | The effect is real but small: 22% of accidents in rain or storms are high-impact, against 17% in clear weather. |
 
 <p align="center">
   <img src="reports/figures/12_severity_by_source.png" width="90%" alt="Severity by data provider and accidents per year by provider">
