@@ -44,6 +44,7 @@ This project prepares the [US Accidents (2016–2023)](https://www.kaggle.com/da
 ├── src/features.py                         # feature creation + leakage-safe preprocessor
 ├── reports/
 │   ├── midterm_report.pdf                  # written report
+│   ├── midterm_presentation.pptx           # slides with speaker notes
 │   ├── figures/                            # all charts
 │   ├── leakage_audit.md, cleaning_log.md, data_dictionary.md
 ├── run_all.py                              # runs every notebook top to bottom
