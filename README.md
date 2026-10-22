@@ -66,7 +66,7 @@ git lfs pull                       # downloads the 188 MB data file
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python run_all.py                  # runs notebooks 01 → 04 (~1 min)
+python run_all.py                  # runs notebooks 01 → 04 (~2–3 min)
 ```
 
 You can also open the notebooks in Jupyter or VS Code and run them in order. All paths are relative, so nothing needs editing. A fixed random seed (`42`) makes every result reproducible.
