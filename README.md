@@ -48,9 +48,10 @@ This project prepares the [US Accidents (2016–2023)](https://www.kaggle.com/da
 │   ├── leakage_audit.md, cleaning_log.md, data_dictionary.md
 ├── run_all.py                              # runs every notebook top to bottom
 ├── requirements.txt
-├── US_Accidents_Project_Plan.pdf           # original project plan
-└── exec.ipynb                              # initial data exploration
+└── US_Accidents_Project_Plan.pdf           # original project plan
 ```
+
+Early exploration (`exec.ipynb`) and the `Data Science Project/` pipeline notebooks are kept on the `rayan` branch.
 
 `data/` is not versioned. The notebooks recreate it.
 
