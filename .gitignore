@@ -5,6 +5,10 @@ data/*
 # Virtual environment
 .venv/
 
+# Dashboard development tools
+.sites-local/
+node_modules/
+
 # Python cache
 __pycache__/
 *.pyc
@@ -29,3 +33,12 @@ Thumbs.db
 
 # Parquet files (optional - can be large)
 *.parquet
+
+# Generated prediction shards and local verification artifacts
+dashboard/dist/data/
+dashboard/.git/
+.pytest_cache/
+outputs/reports/qa/
+outputs/cache/
+outputs/logs/
+*.log

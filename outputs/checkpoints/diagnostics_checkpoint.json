@@ -1,0 +1,224 @@
+{
+  "signature": "ce10be62197b953cedf37c2d29b5c409186a5e818a40a2748ded43020bcf9689",
+  "importance": [
+    {
+      "feature": "State",
+      "macro_f1_drop": 0.23342085870816082
+    },
+    {
+      "feature": "Year",
+      "macro_f1_drop": 0.16194642613940835
+    },
+    {
+      "feature": "Month",
+      "macro_f1_drop": 0.08965112344416809
+    },
+    {
+      "feature": "County",
+      "macro_f1_drop": 0.07849361532154353
+    },
+    {
+      "feature": "City",
+      "macro_f1_drop": 0.04359378931662394
+    },
+    {
+      "feature": "Is_Highway",
+      "macro_f1_drop": 0.03808247275830101
+    },
+    {
+      "feature": "Hour",
+      "macro_f1_drop": 0.026821914585446582
+    },
+    {
+      "feature": "Traffic_Signal",
+      "macro_f1_drop": 0.008553287713796931
+    },
+    {
+      "feature": "Road_Feature_Count",
+      "macro_f1_drop": 0.008071181906505687
+    },
+    {
+      "feature": "Weekday",
+      "macro_f1_drop": 0.007329197036901491
+    },
+    {
+      "feature": "Junction",
+      "macro_f1_drop": 0.007112264721592654
+    },
+    {
+      "feature": "Pressure(in)",
+      "macro_f1_drop": 0.006383332146871035
+    },
+    {
+      "feature": "Visibility(mi)",
+      "macro_f1_drop": 0.0026094413841326602
+    },
+    {
+      "feature": "Sunrise_Sunset",
+      "macro_f1_drop": 0.0015233227565488727
+    },
+    {
+      "feature": "Station",
+      "macro_f1_drop": 0.0011780412133461926
+    },
+    {
+      "feature": "Precipitation(in)",
+      "macro_f1_drop": 0.000965382073395471
+    },
+    {
+      "feature": "Stop",
+      "macro_f1_drop": 0.0008412294524194897
+    },
+    {
+      "feature": "Start_Lat",
+      "macro_f1_drop": 0.0006618790167608468
+    },
+    {
+      "feature": "Is_Rush_Hour",
+      "macro_f1_drop": 0.0005177248844011606
+    },
+    {
+      "feature": "Amenity",
+      "macro_f1_drop": 0.0003130758073286444
+    },
+    {
+      "feature": "Railway",
+      "macro_f1_drop": 0.00012071148061543191
+    },
+    {
+      "feature": "Precipitation_Missing",
+      "macro_f1_drop": 8.394937303990435e-05
+    },
+    {
+      "feature": "Weather_Group",
+      "macro_f1_drop": 5.605244550344057e-05
+    },
+    {
+      "feature": "Bump",
+      "macro_f1_drop": 0.0
+    },
+    {
+      "feature": "No_Exit",
+      "macro_f1_drop": 0.0
+    },
+    {
+      "feature": "Roundabout",
+      "macro_f1_drop": 0.0
+    },
+    {
+      "feature": "Traffic_Calming",
+      "macro_f1_drop": 0.0
+    },
+    {
+      "feature": "Give_Way",
+      "macro_f1_drop": -3.4914440904976196e-05
+    },
+    {
+      "feature": "Crossing",
+      "macro_f1_drop": -0.00033840668676610175
+    },
+    {
+      "feature": "Wind_Speed(mph)",
+      "macro_f1_drop": -0.0004640318683908351
+    },
+    {
+      "feature": "Weather_Unavailable",
+      "macro_f1_drop": -0.0005572971120456627
+    },
+    {
+      "feature": "Start_Lng",
+      "macro_f1_drop": -0.0008215815371918067
+    },
+    {
+      "feature": "Humidity(%)",
+      "macro_f1_drop": -0.0011492663920606994
+    },
+    {
+      "feature": "Is_Weekend",
+      "macro_f1_drop": -0.0017558833743944735
+    },
+    {
+      "feature": "Wind_Direction",
+      "macro_f1_drop": -0.0018402828415822192
+    },
+    {
+      "feature": "Temperature(F)",
+      "macro_f1_drop": -0.0030590297396067
+    }
+  ],
+  "temporal": {
+    "cutoff": "2022-01-01",
+    "scope": "Development only; diagnostic, not used for model selection.",
+    "train_rows": 600000,
+    "evaluation_rows": 160000,
+    "accuracy": 0.85916875,
+    "macro_f1": 0.32739586809102517,
+    "balanced_accuracy": 0.34263633006276595,
+    "weighted_f1": 0.8581351204481467,
+    "confusion": [
+      [
+        0,
+        3335,
+        70,
+        14
+      ],
+      [
+        3,
+        134876,
+        9035,
+        2347
+      ],
+      [
+        0,
+        4856,
+        2098,
+        104
+      ],
+      [
+        1,
+        2528,
+        240,
+        493
+      ]
+    ],
+    "classification_report": {
+      "1": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 3419.0
+      },
+      "2": {
+        "precision": 0.9263779662763144,
+        "recall": 0.922159700808828,
+        "f1-score": 0.924264020612905,
+        "support": 146261.0
+      },
+      "3": {
+        "precision": 0.18334352879489643,
+        "recall": 0.29725134599036557,
+        "f1-score": 0.22679855142965244,
+        "support": 7058.0
+      },
+      "4": {
+        "precision": 0.16666666666666666,
+        "recall": 0.15113427345187003,
+        "f1-score": 0.1585209003215434,
+        "support": 3262.0
+      },
+      "accuracy": 0.85916875,
+      "macro avg": {
+        "precision": 0.3190970404344694,
+        "recall": 0.34263633006276595,
+        "f1-score": 0.32739586809102517,
+        "support": 160000.0
+      },
+      "weighted avg": {
+        "precision": 0.8583167063652565,
+        "recall": 0.85916875,
+        "f1-score": 0.8581351204481467,
+        "support": 160000.0
+      }
+    }
+  }
+}

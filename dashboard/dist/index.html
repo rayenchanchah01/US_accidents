@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A transparent study of US accident traffic-impact severity. Explore model performance and every prediction in the untouched 20% holdout.">
+  <meta name="theme-color" content="#f3f2ec">
+  <title>IMPACT — US Accidents Observatory</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' fill='%23253831'/%3E%3Cpath d='M15 6v28M25 6v28' stroke='%23f3f2ec' stroke-width='3'/%3E%3Cpath d='M20 6v8m0 6v8' stroke='%23d6f171' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="journey.css">
+  <script src="app.js" defer></script>
+  <script src="journey.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to dataset</a>
+<header class="masthead">
+  <a class="brand" href="#dataset" aria-label="Impact home"><span class="roadmark" aria-hidden="true">Ⅱ</span> IMPACT<span class="brand-sub">US ACCIDENTS<br>OBSERVATORY</span></a>
+  <div class="edition">RESEARCH SERIES / 001<span>2016 — 2023</span></div>
+  <a class="text-link" href="data/results.json" download="model-results.json">Download results <span aria-hidden="true">↗</span></a>
+</header>
+<div class="workspace">
+<aside class="sidebar">
+  <div class="side-title">THE STUDY</div>
+  <nav aria-label="Dashboard sections">
+    <a class="nav-link active" href="#dataset"><span>01</span> Dataset <b>&#8599;</b></a>
+    <a class="nav-link" href="#cleaning"><span>02</span> Cleaning <b>&#8599;</b></a>
+    <a class="nav-link" href="#features"><span>03</span> Feature engineering <b>&#8599;</b></a>
+    <a class="nav-link" href="#split"><span>04</span> Split & encoding <b>&#8599;</b></a>
+    <a class="nav-link" href="#method"><span>05</span> Model comparison <b>&#8599;</b></a>
+    <a class="nav-link" href="#overview"><span>06</span> Results <b>&#8599;</b></a>
+    <a class="nav-link" href="#predictions"><span>07</span> Prediction ledger <b>&#8599;</b></a>
+  </nav>
+  <div class="side-note"><span class="status-dot"></span> HOLDOUT EVALUATION<p>Real records.<br>Unseen during training.</p><div class="split-mini"><span></span><i></i></div><div class="split-labels"><span>80% training</span><span>20% test</span></div></div>
+  <div class="legend-block"><div class="side-title">TRAFFIC IMPACT</div><p><i class="swatch s1"></i> 1 <span>Least impact</span></p><p><i class="swatch s2"></i> 2 <span>Level two</span></p><p><i class="swatch s3"></i> 3 <span>Level three</span></p><p><i class="swatch s4"></i> 4 <span>Highest impact</span></p><small>Severity describes traffic disruption, not injury severity.</small></div>
+  <div class="sidebar-footer">A closer look at<br>the road ahead.<span>US ACCIDENTS / MOOSAVI ET AL.</span></div>
+</aside>
+<main id="main">
+  <div id="loading" role="status">Loading the evaluation…</div>
+  <div id="fatal" role="alert" hidden><h1>Results are not available yet.</h1><p>The dashboard needs the exported model results. Run the project pipeline, then reload this page.</p><button type="button" onclick="location.reload()">Try again</button></div>
+  <div id="content" hidden>
+  <section id="dataset" class="journey-section" aria-labelledby="dataset-title">
+    <div class="section-eyebrow"><span><i class="status-dot"></i> 01 / MEET THE DATA</span><span>2016 — MARCH 2023</span></div>
+    <div class="intro"><div><h1 id="dataset-title">From raw records.<br><em>To real evidence.</em></h1><p>Follow an accident dataset through every decision.<br>Explore the records, inspect the transformations, then judge the model.</p></div><div class="journey-mark" aria-hidden="true">01 <span>DATA<br>TO DECISION</span></div></div>
+    <div class="journey-route"><a href="#dataset">Dataset</a><span>→</span><a href="#cleaning">Clean</a><span>→</span><a href="#features">Engineer</a><span>→</span><a href="#split">Split</a><span>→</span><a href="#method">Compare</a><span>→</span><a href="#overview">Evaluate</a></div>
+    <div class="metric-strip" id="dataset-metrics"></div>
+    <div class="study-context"><p><b>The question</b> How well can incident-time location, weather and road context classify traffic-impact severity, from level 1 to level 4?</p><p><b>The source</b> US Accidents, March 2023 release. One row describes one reported incident. Severity measures traffic disruption; it does not measure injury severity.</p></div>
+    <article class="explorer panel">
+      <div class="panel-heading"><div class="eyebrow">THE DATASET EXPLORER</div><h2>Your view of the data.</h2><p id="sample-scope"></p></div>
+      <div class="explorer-controls">
+        <label>Dataset view<select id="dataset-view"><option value="raw">Original source</option><option value="cleaned">Cleaned + engineered</option></select></label>
+        <label>State<select id="dataset-state"><option value="all">All states</option></select></label>
+        <label>Severity<select id="dataset-severity"><option value="all">All levels</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+        <label>Search any feature<input id="dataset-search" type="search" placeholder="City, incident ID, weather…"></label>
+        <label>Rows per page<select id="dataset-size"><option>10</option><option>25</option><option>50</option><option>100</option></select></label>
+      </div>
+      <div class="feature-filter"><label>Filter a feature<select id="feature-filter"></select></label><label>Condition<select id="feature-operator"><option value="contains">contains</option><option value="eq">equals</option><option value="gt">greater than</option><option value="lt">less than</option><option value="missing">is missing</option></select></label><label>Value<input id="feature-value" placeholder="Enter a value"></label><button id="dataset-reset">Reset view</button></div>
+      <details class="column-picker"><summary>Choose visible features <span id="column-count"></span></summary><p>Defaults combine identifying context with the strongest available predictors, ranked by validation permutation importance.</p><div class="picker-actions"><button id="columns-default">Important features</button><button id="columns-all">Show all features</button></div><div id="dataset-columns"></div></details>
+      <div class="explorer-actions"><p id="dataset-range" role="status" aria-live="polite"></p><div><label>Sort by<select id="dataset-sort"></select></label><button id="dataset-direction" aria-label="Toggle sort direction">Ascending ↑</button><button id="dataset-export">Export filtered preview ↓</button></div></div>
+      <div class="table-scroll"><table class="data-table"><caption class="sr-only">Dataset sample with selected features</caption><thead id="dataset-head"></thead><tbody id="dataset-rows"></tbody></table></div>
+      <div class="table-footer"><span id="dataset-sample-note"></span><div><button id="dataset-prev" aria-label="Previous dataset page">←</button><span id="dataset-page"></span><button id="dataset-next" aria-label="Next dataset page">→</button></div></div>
+    </article>
+  </section>
+  <section id="cleaning" class="journey-section" aria-labelledby="cleaning-title">
+    <div class="section-heading"><div><div class="eyebrow">02 / CLEANING</div><h2 id="cleaning-title">Make the records trustworthy.</h2><p>Validate the essentials, mask unavailable weather, remove repeated events, and exclude outcome information.</p></div><span class="method-stamp">FULL-DATA AUDIT<br>REAL ROW EXAMPLES</span></div>
+    <div id="cleaning-flow" class="cleaning-flow"></div>
+    <div class="stage-tabs" role="group" aria-label="Cleaning phase"><button data-clean-stage="validation" aria-pressed="true" class="selected">1. Validate</button><button data-clean-stage="weather" aria-pressed="false">2. Weather & missingness</button></div>
+    <article class="panel transformation"><div class="panel-heading"><h3 id="clean-stage-title"></h3><p id="clean-stage-description"></p></div><div id="clean-stage-result" class="stage-result"></div><div id="clean-tables"></div></article>
+    <details class="audit-details"><summary>View all raw missing-value counts and excluded columns</summary><div class="method-grid"><div id="missing-table"></div><div id="excluded-table"></div></div></details>
+  </section>
+  <section id="features" class="journey-section" aria-labelledby="features-title">
+    <div class="section-heading"><div><div class="eyebrow">03 / FEATURE ENGINEERING</div><h2 id="features-title">Turn context into signals.</h2><p>Deterministic rules derive time, road and weather features from each incident.</p></div></div>
+    <div id="feature-rules" class="table-scroll"></div>
+    <article class="panel transformation"><div class="panel-heading"><h3>The same incidents, richer context.</h3><p>Match the incident IDs across both tables. These values come from the actual cleaning function.</p></div><div id="engineering-tables"></div></article>
+    <article class="panel transformation"><div class="panel-heading"><h3>Select the final model inputs.</h3><p>After deriving features, retain the explicit predictor list and traceability metadata. End time, extent and narrative are excluded. Severity is the target; ID and Source are never predictors. ID appears below only to match incidents.</p></div><div id="selection-tables"></div></article>
+  </section>
+  <section id="split" class="journey-section" aria-labelledby="split-title">
+    <div class="section-heading"><div><div class="eyebrow">04 / SPLIT & ENCODING</div><h2 id="split-title">Keep the test set unseen.</h2><p>Split after cleaning and deduplication. Learn preprocessing only from the fitting partition.</p></div></div>
+    <article class="panel transformation"><div class="panel-heading"><h3>First, deduplicate across the full archive.</h3><p>Cleaning and feature engineering run per chunk. Once all chunks are processed, the pipeline keeps the first event with an exact local start time and original-precision coordinates, across all providers. Only then does it split the retained rows.</p></div><div id="duplicate-tables"></div><p class="panel-footnote">Different groups of actual removed and retained preview rows, verified against the saved full-data manifest. Coincident independent incidents may be merged by this conservative rule.</p></article>
+    <div class="partition-bar"><div id="development-label"></div><div id="test-label"></div></div>
+    <div class="method-grid"><article class="panel split-card"><h3>Development → selection → refit</h3><p id="split-description"></p><div id="split-counts"></div></article><article class="panel split-card"><h3>Saved row assignments</h3><p>Real memberships from the saved split. Tuning and validation are subsets of development.</p><div id="split-table"></div></article></div>
+    <article class="panel transformation"><div class="panel-heading"><h3>From categories to model inputs.</h3><p>The saved LightGBM encoder maps training categories to codes. City and County are qualified with State. Codes are marked categorical, not interpreted as a ranking. Missing numeric values remain missing; unseen categories map to −1.</p><p>The logistic regression comparison instead fits numeric medians, missingness indicators, scaling and one-hot encoding on its fitting data.</p></div><div id="encoding-tables"></div><p class="panel-footnote">Example codes come from the final encoder fitted on development data. Candidate selection used its own fitting-only encoder.</p></article>
+  </section>
+  <section id="method" class="method-section" aria-labelledby="method-title"><div class="section-heading"><div><div class="eyebrow">THE METHOD, OPENLY</div><h2 id="method-title">A model earns its place.</h2><p>Selected on validation macro F1. Evaluated once on the final test set.</p></div><span class="method-stamp">CLASSIFICATION<br>4 ORIGINAL CLASSES</span></div>
+    <div class="method-grid"><article class="panel"><div class="panel-heading"><h3>The comparison</h3><p id="comparison-subtitle"></p></div><div id="model-comparison"></div><div class="chosen-model" id="chosen-model"></div></article><article class="panel"><div class="panel-heading"><h3>What the model uses</h3><p>Largest macro-F1 drops when one feature is shuffled on validation data.</p></div><div id="importance"></div><p class="panel-footnote">One repeat on 12,000 validation rows. Correlated inputs can mask importance; this does not establish causation.</p></article></div>
+    <div class="method-grid"><article class="panel audit-panel"><div class="eyebrow">CLEANING AUDIT</div><h3>Less leakage. More honest results.</h3><div id="cleaning-steps"></div><a href="data/cleaning.json" download="cleaning-audit.json" class="text-link">Download full audit ↗</a></article><article class="panel limits-panel"><div class="eyebrow">READ THE LIMITS</div><h3>History is not the future.</h3><p id="temporal-note"></p><ul id="limitations"></ul></article></div>
+  </section>
+  <section id="overview" aria-labelledby="overview-title">
+    <div class="section-eyebrow"><span><i class="status-dot"></i> THE HELD-OUT 20%</span><span id="dataset-meta"></span></div>
+    <div class="intro"><div><h1 id="overview-title">Every prediction.<br><em>In perspective.</em></h1><p>A four-class model of accident traffic impact.<br>See what it learned, where it misses, and the evidence behind it.</p></div><div class="scope-control"><label for="state-filter">EXPLORING</label><select id="state-filter"><option value="ALL">All states</option></select><span id="scope-count"></span><button class="reset" id="reset-state" hidden>Reset to all states ↗</button></div></div>
+    <div class="metric-strip">
+      <article class="metric primary"><div>MACRO F1 <span title="Mean F1 across all four classes. Each class has equal weight.">01</span></div><strong id="macro">—</strong><p id="macro-note"></p></article>
+      <article class="metric"><div>ACCURACY <span>02</span></div><strong id="accuracy">—</strong><p id="accuracy-note"></p></article>
+      <article class="metric"><div>LEVEL 4 RECALL <span>03</span></div><strong id="recall">—</strong><p id="recall-note"></p></article>
+      <article class="metric"><div>UNSEEN RECORDS <span>04</span></div><strong id="test-count">—</strong><p id="count-note"></p></article>
+    </div>
+    <div class="analysis-grid">
+      <article class="panel geography"><div class="panel-heading"><div class="eyebrow">01 / THE GEOGRAPHY</div><h2>A national footprint.</h2><p>Held-out incidents, aggregated into 0.25° cells.</p></div><div class="map-wrap"><svg id="map" viewBox="0 0 640 320" role="img" aria-label="Spatial distribution of held-out accidents in the contiguous United States"></svg><div class="map-tag">CONTIGUOUS UNITED STATES</div></div><div class="map-footer"><span><i class="map-dot"></i> Larger dots = more recorded incidents</span><span>Coverage ≠ road risk</span></div><div class="state-bars" id="state-bars"></div></article>
+      <article class="panel confusion-panel"><div class="panel-heading"><div class="eyebrow">02 / THE ERRORS</div><h2>Actual meets predicted.</h2><p>Each row is an actual severity. Shading shows its share.</p></div><div class="matrix-axis">PREDICTED SEVERITY →</div><div id="confusion" class="matrix" role="group" aria-label="Confusion matrix. Rows are actual severity; columns are predicted severity. Focus each cell for details."></div><div class="matrix-note"><i></i><p>Diagonal cells are correct predictions.<br>Hover or focus any cell for its record count.</p></div></article>
+    </div>
+    <div class="analysis-grid secondary">
+      <article class="panel"><div class="panel-heading"><div class="eyebrow">03 / ACROSS TIME</div><h2>Does the pattern hold?</h2><p>Share of incidents classified as level 3 or 4, by month.</p></div><div class="chart-legend"><span><i class="line-key"></i> Actual</span><span><i class="line-key predicted"></i> Predicted</span></div><svg id="timeline" viewBox="0 0 640 190" role="img" aria-label="Monthly actual and predicted share of level 3 or 4 incidents"></svg><p class="panel-footnote">Historical test records, not a forecast. 2023 includes January–March.</p></article>
+      <article class="panel"><div class="panel-heading"><div class="eyebrow">04 / CLASS BY CLASS</div><h2>Beyond the average.</h2><p>Recall: the share of each severity correctly found.</p></div><div id="class-recall" class="recall-list"></div><p class="panel-footnote">Small classes count equally in macro F1.</p></article>
+    </div>
+  </section>
+  <section id="predictions" class="records-section" aria-labelledby="pred-title"><div class="section-heading"><div><div class="eyebrow">THE PREDICTION LEDGER</div><h2 id="pred-title">Inspect the evidence.</h2><p>Every row below belongs to the untouched test set.</p></div><button id="export-csv" class="dark-button">Export filtered CSV <span>↓</span></button></div>
+    <div class="table-toolbar"><div class="segmented" aria-label="Filter prediction outcome"><button class="selected" data-outcome="all" aria-pressed="true">All predictions</button><button data-outcome="wrong" aria-pressed="false">Errors only</button><button data-outcome="right" aria-pressed="false">Correct only</button></div><div><label for="class-filter">Actual severity</label><select id="class-filter"><option value="all">All levels</option><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option></select></div></div>
+    <div id="table-status" class="table-status" role="status" aria-live="polite"></div>
+    <div class="table-scroll"><table class="prediction-table"><thead><tr><th>INCIDENT / LOCAL TIME</th><th>LOCATION</th><th>ACTUAL</th><th>PREDICTED</th><th>MODEL SCORE</th><th>RESULT</th><th><span class="sr-only">Details</span></th></tr></thead><tbody id="records"></tbody></table></div>
+    <div class="table-footer"><span id="record-range"></span><div><button id="prev-page" aria-label="Previous page">←</button><span id="page-number"></span><button id="next-page" aria-label="Next page">→</button></div></div><p class="panel-footnote">Model scores are uncalibrated. They are not verified probabilities of being correct. Ledger order: state, actual class, outcome, then newest first within each group.</p>
+  </section>
+  <footer class="page-footer"><span>IMPACT / US ACCIDENTS OBSERVATORY</span><p>Data: <a href="https://arxiv.org/abs/1906.05409" target="_blank" rel="noreferrer">Moosavi et al.</a> · March 2023 release.<br>Fixed seed 42. Full dataset. Reproducible evaluation.</p><a href="#dataset">Back to top ↑</a></footer>
+  </div>
+</main>
+</div>
+<dialog id="detail-dialog" aria-labelledby="detail-title"><div class="dialog-top"><div class="eyebrow">PREDICTION DETAIL</div><button id="close-dialog" aria-label="Close prediction details">×</button></div><div id="detail-body"></div></dialog>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body></html>
