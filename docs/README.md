@@ -33,6 +33,19 @@ From the project root:
 python serve_dashboard.py
 ```
 
+Everything else happens in the dashboard. In **Train & test** (sidebar group
+*Model training & testing*):
+
+1. **Upload CSV**: choose any US Accidents CSV (or a ZIP holding one), for example a newer
+   release. It is copied to `data/uploads/`, its columns are checked, and it becomes the active dataset.
+2. **Clean dataset**: runs `prepare` on the active file.
+3. **Train model**: compares the candidates on validation data and refits the winner. The test set stays untouched.
+4. **Test model**: scores the held-out 20% once, exports the dashboard data and reports, and reloads the page.
+
+Steps run one at a time in the background; the activity log shows progress
+(`outputs/logs/pipeline.log`). The same stages run from a terminal with
+`python run_all.py --source <file> --stage clean|train|test|all`.
+
 At the bottom of the dashboard, **Try the model** accepts a new incident and runs
 `outputs/models/severity.joblib` locally. The main fields follow the saved validation
 permutation-importance ranking: state, date (year/month/hour), county, city, highway

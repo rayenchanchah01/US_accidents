@@ -35,7 +35,7 @@
 .predict-advanced .predict-fields{margin-top:18px}
 .predict-actions{display:flex;gap:12px;align-items:center;margin-top:24px}
 .predict-actions button{font-size:15px;min-height:46px;padding:12px 18px;margin:0}
-.predict-output{padding:28px;background:#e8ecdf;border:1px solid #cdd6c0;min-width:0;position:sticky;top:24px}
+.predict-output{padding:28px;background:#fff;border:1px solid var(--line);min-width:0;position:sticky;top:24px}
 .predict-output>.eyebrow{font-size:11px;letter-spacing:1px;margin-bottom:18px}
 .predict-output h3{font-size:30px;line-height:1.2}
 #predict-status{font-size:15px;line-height:1.8;margin:18px 0}
@@ -61,4 +61,3 @@
 .predict-model-note>span{font:12px/1.8 var(--mono)}
 .predict-model-note p{font-size:13px;line-height:1.8;margin-bottom:0}
 @media(max-width:1150px){.predict-layout{grid-template-columns:minmax(0,1fr)}.predict-output{position:static}.predict-form-heading{flex-wrap:wrap}}
-@media(max-width:640px){#predict-form,.predict-output{padding:20px}.predict-fields{grid-template-columns:minmax(0,1fr);gap:20px}.predict-context{padding-left:16px}#predict-importance{grid-template-columns:1fr}.predict-actions{flex-wrap:wrap}.predict-actions button{flex:1}.predict-form-heading h3{font-size:26px}#try-model .section-heading p{font-size:15px}}

@@ -37,8 +37,13 @@ def export(data=DATA, dist=DASHBOARD):
     spatial = predictions.loc[predictions.Start_Lat.between(24, 50) & predictions.Start_Lng.between(-125, -66)].copy()
     spatial['lat_bin'] = np.round(spatial.Start_Lat * 4).astype(int)
     spatial['lon_bin'] = np.round(spatial.Start_Lng * 4).astype(int)
-    geo = [[str(s), int(lon), int(lat), int(n)] for (s, lon, lat), n in
-           spatial.groupby(['State', 'lon_bin', 'lat_bin'], observed=True).size().items()]
+    # Per cell: [state, lon*4, lat*4, records, correct, actual counts 1-4, predicted counts 1-4].
+    geo = []
+    for (s, lon, lat), g in spatial.groupby(['State', 'lon_bin', 'lat_bin'], observed=True):
+        actual_counts = np.bincount(g.actual, minlength=5)[1:5]
+        predicted_counts = np.bincount(g.predicted, minlength=5)[1:5]
+        geo.append([str(s), int(lon), int(lat), len(g), int(g.correct.sum()),
+                    *map(int, actual_counts), *map(int, predicted_counts)])
     manifest = []
     columns = ['ID', 'date', 'City', 'State', 'actual', 'predicted', 'score',
                'p1', 'p2', 'p3', 'p4', 'Weather_Group', 'Start_Lat', 'Start_Lng']

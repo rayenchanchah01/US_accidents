@@ -3,20 +3,24 @@
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="A transparent study of US accident traffic-impact severity. Explore model performance and every prediction in the untouched 20% holdout.">
-  <meta name="theme-color" content="#f3f2ec">
-  <title>IMPACT — US Accidents Observatory</title>
+  <meta name="theme-color" content="#ffffff">
+  <title>US Accidents Severity</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' fill='%23253831'/%3E%3Cpath d='M15 6v28M25 6v28' stroke='%23f3f2ec' stroke-width='3'/%3E%3Cpath d='M20 6v8m0 6v8' stroke='%23d6f171' stroke-width='2'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="journey.css">
-  <link rel="stylesheet" href="predict.css">
-  <script src="app.js" defer></script>
-  <script src="journey.js" defer></script>
-  <script src="predict.js" defer></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" integrity="sha384-c6Rcwz4e4CITMbu/NBmnNS8yN2sC3cUElMEMfP3vqqKFp7GOYaaBBCqmaWBjmkjb" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" integrity="sha384-NElt3Op+9NBMCYaef5HxeJmU4Xeard/Lku8ek6hoPTvYkQPh3zLIrJP7KiRocsxO" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+  <link rel="stylesheet" href="styles.css?v=2026-11-19.20">
+  <link rel="stylesheet" href="journey.css?v=2026-11-19.20">
+  <link rel="stylesheet" href="predict.css?v=2026-11-19.20">
+  <script src="app.js?v=2026-11-19.20" defer></script>
+  <script src="journey.js?v=2026-11-19.20" defer></script>
+  <script src="predict.js?v=2026-11-19.20" defer></script>
+  <script src="pipeline.js?v=2026-11-19.20" defer></script>
+  <link rel="stylesheet" href="pipeline.css?v=2026-11-19.20">
 </head>
 <body>
 <a class="skip" href="#main">Skip to dataset</a>
 <header class="masthead">
-  <a class="brand" href="#dataset" aria-label="Impact home"><span class="roadmark" aria-hidden="true">Ⅱ</span> IMPACT<span class="brand-sub">US ACCIDENTS<br>OBSERVATORY</span></a>
+  <a class="title-mark" href="#dataset"><span class="title-main">US Accidents <em>Severity</em></span><span class="title-sub">Traffic-impact classification, from raw records to tested model</span></a>
   <div class="edition">RESEARCH SERIES / 001<span>2016 — 2023</span></div>
   <a class="text-link" href="data/results.json" download="model-results.json">Download results <span aria-hidden="true">↗</span></a>
 </header>
@@ -24,14 +28,19 @@
 <aside class="sidebar">
   <div class="side-title">THE STUDY</div>
   <nav aria-label="Dashboard sections">
-    <a class="nav-link active" href="#dataset"><span>01</span> Dataset <b>&#8599;</b></a>
-    <a class="nav-link" href="#cleaning"><span>02</span> Cleaning <b>&#8599;</b></a>
-    <a class="nav-link" href="#features"><span>03</span> Feature engineering <b>&#8599;</b></a>
-    <a class="nav-link" href="#split"><span>04</span> Split & encoding <b>&#8599;</b></a>
-    <a class="nav-link" href="#method"><span>05</span> Model comparison <b>&#8599;</b></a>
-    <a class="nav-link" href="#overview"><span>06</span> Results <b>&#8599;</b></a>
-    <a class="nav-link" href="#predictions"><span>07</span> Prediction ledger <b>&#8599;</b></a>
-    <a class="nav-link" href="#try-model"><span>08</span> Try the model <b>&#8599;</b></a>
+    <details class="nav-group" open><summary><span>01</span> Dataset</summary>
+      <a class="nav-link active" href="#dataset" aria-current="page">Explore the data</a>
+      <a class="nav-link" href="#cleaning">Cleaning</a>
+      <a class="nav-link" href="#features">Feature engineering</a>
+      <a class="nav-link" href="#split">Split & encoding</a>
+    </details>
+    <details class="nav-group" open><summary><span>02</span> Model</summary>
+      <a class="nav-link" href="#pipeline">Train & test</a>
+      <a class="nav-link" href="#method">Model comparison</a>
+      <a class="nav-link" href="#overview">Results</a>
+      <a class="nav-link" href="#predictions">Prediction ledger</a>
+      <a class="nav-link" href="#try-model">Try the model</a>
+    </details>
   </nav>
   <div class="side-note"><span class="status-dot"></span> HOLDOUT EVALUATION<p>Real records.<br>Unseen during training.</p><div class="split-mini"><span></span><i></i></div><div class="split-labels"><span>80% training</span><span>20% test</span></div></div>
   <div class="legend-block"><div class="side-title">TRAFFIC IMPACT</div><p><i class="swatch s1"></i> 1 <span>Least impact</span></p><p><i class="swatch s2"></i> 2 <span>Level two</span></p><p><i class="swatch s3"></i> 3 <span>Level three</span></p><p><i class="swatch s4"></i> 4 <span>Highest impact</span></p><small>Severity describes traffic disruption, not injury severity.</small></div>
@@ -39,14 +48,14 @@
 </aside>
 <main id="main">
   <div id="loading" role="status">Loading the evaluation…</div>
-  <div id="fatal" role="alert" hidden><h1>Results are not available yet.</h1><p>The dashboard needs the exported model results. Run the project pipeline, then reload this page.</p><button type="button" onclick="location.reload()">Try again</button></div>
-  <div id="content" hidden>
+  <div id="fatal" role="alert" hidden><h1>No results yet.</h1><p>Upload a dataset in <a href="#pipeline">Train &amp; test</a>, then clean it, train the model and test it. The results appear here when the test step finishes.</p></div>
+  <div id="content" class="results-content" hidden>
   <section id="dataset" class="journey-section" aria-labelledby="dataset-title">
     <div class="section-eyebrow"><span><i class="status-dot"></i> 01 / MEET THE DATA</span><span>2016 — MARCH 2023</span></div>
     <div class="intro"><div><h1 id="dataset-title">From raw records.<br><em>To real evidence.</em></h1><p>Follow an accident dataset through every decision.<br>Explore the records, inspect the transformations, then judge the model.</p></div><div class="journey-mark" aria-hidden="true">01 <span>DATA<br>TO DECISION</span></div></div>
     <div class="journey-route"><a href="#dataset">Dataset</a><span>→</span><a href="#cleaning">Clean</a><span>→</span><a href="#features">Engineer</a><span>→</span><a href="#split">Split</a><span>→</span><a href="#method">Compare</a><span>→</span><a href="#overview">Evaluate</a></div>
     <div class="metric-strip" id="dataset-metrics"></div>
-    <div class="study-context"><p><b>The question</b> How well can incident-time location, weather and road context classify traffic-impact severity, from level 1 to level 4?</p><p><b>The source</b> US Accidents, March 2023 release. One row describes one reported incident. Severity measures traffic disruption; it does not measure injury severity.</p></div>
+    <div class="study-context"><p><b>The question</b> How well can incident-time location, weather and road context classify traffic-impact severity, from level 1 to level 4?</p><p><b>The source</b> US Accidents (Moosavi et al.). This run uses <span id="source-file" class="source-file"></span>. One row describes one reported incident. Severity measures traffic disruption; it does not measure injury severity. <a class="inline-link" href="#pipeline">Update the dataset ↗</a></p></div>
     <article class="explorer panel">
       <div class="panel-heading"><div class="eyebrow">THE DATASET EXPLORER</div><h2>Your view of the data.</h2><p id="sample-scope"></p></div>
       <div class="explorer-controls">
@@ -83,6 +92,19 @@
     <div class="method-grid"><article class="panel split-card"><h3>Development → selection → refit</h3><p id="split-description"></p><div id="split-counts"></div></article><article class="panel split-card"><h3>Saved row assignments</h3><p>Real memberships from the saved split. Tuning and validation are subsets of development.</p><div id="split-table"></div></article></div>
     <article class="panel transformation"><div class="panel-heading"><h3>From categories to model inputs.</h3><p>The saved LightGBM encoder maps training categories to codes. City and County are qualified with State. Codes are marked categorical, not interpreted as a ranking. Missing numeric values remain missing; unseen categories map to −1.</p><p>The logistic regression comparison instead fits numeric medians, missingness indicators, scaling and one-hot encoding on its fitting data.</p></div><div id="encoding-tables"></div><p class="panel-footnote">Example codes come from the final encoder fitted on development data. Candidate selection used its own fitting-only encoder.</p></article>
   </section>
+  </div>
+  <section id="pipeline" class="journey-section pipeline-section" aria-labelledby="pipeline-title">
+    <div class="section-heading"><div><div class="eyebrow">05 / TRAIN & TEST</div><h2 id="pipeline-title">Run the pipeline.</h2><p>Upload a dataset, then run each step in order. The steps run on this computer, and the dashboard reloads with the new results.</p></div><span class="method-stamp">ONE STEP<br>AT A TIME</span></div>
+    <p id="pipeline-offline" class="pipeline-offline" role="status" hidden>The pipeline controls need the local server. Start it with <code>python serve_dashboard.py</code>, then reload this page.</p>
+    <ol class="pipeline-steps" id="pipeline-steps">
+      <li class="pipe-step" data-step="source"><div class="pipe-top"><span class="pipe-no">1</span><span class="pipe-state" id="pipe-state-source"></span></div><h3>Dataset</h3><p id="source-info">No dataset uploaded yet.</p><button type="button" class="dark-button" id="upload-button">Upload CSV <span>↑</span></button><input type="file" id="upload-input" accept=".csv,.zip" hidden><div class="pipe-progress" id="upload-progress" hidden><i></i></div></li>
+      <li class="pipe-step" data-step="clean"><div class="pipe-top"><span class="pipe-no">2</span><span class="pipe-state" id="pipe-state-clean"></span></div><h3>Clean</h3><p>Validate rows, mask unavailable weather, derive features and remove repeated events.</p><button type="button" class="dark-button" data-run="clean">Clean dataset <span>→</span></button></li>
+      <li class="pipe-step" data-step="train"><div class="pipe-top"><span class="pipe-no">3</span><span class="pipe-state" id="pipe-state-train"></span></div><h3>Train</h3><p>Split 80/20, compare models on validation data, refit the winner. The test set stays untouched.</p><button type="button" class="dark-button" data-run="train">Train model <span>→</span></button></li>
+      <li class="pipe-step" data-step="test"><div class="pipe-top"><span class="pipe-no">4</span><span class="pipe-state" id="pipe-state-test"></span></div><h3>Test</h3><p>Score the held-out 20% once, then export the results, reports and dashboard data.</p><button type="button" class="dark-button" data-run="test">Test model <span>→</span></button></li>
+    </ol>
+    <article class="panel job-panel"><div class="job-head"><div><div class="eyebrow">ACTIVITY</div><p id="job-status" role="status" aria-live="polite">No step has run yet.</p></div></div><pre id="job-log" tabindex="0" aria-label="Pipeline log"></pre></article>
+  </section>
+  <div id="content-model" class="results-content" hidden>
   <section id="method" class="method-section" aria-labelledby="method-title"><div class="section-heading"><div><div class="eyebrow">THE METHOD, OPENLY</div><h2 id="method-title">A model earns its place.</h2><p>Selected on validation macro F1. Evaluated once on the final test set.</p></div><span class="method-stamp">CLASSIFICATION<br>4 ORIGINAL CLASSES</span></div>
     <div class="method-grid"><article class="panel"><div class="panel-heading"><h3>The comparison</h3><p id="comparison-subtitle"></p></div><div id="model-comparison"></div><div class="chosen-model" id="chosen-model"></div></article><article class="panel"><div class="panel-heading"><h3>What the model uses</h3><p>Largest macro-F1 drops when one feature is shuffled on validation data.</p></div><div id="importance"></div><p class="panel-footnote">One repeat on 12,000 validation rows. Correlated inputs can mask importance; this does not establish causation.</p></article></div>
     <div class="method-grid"><article class="panel audit-panel"><div class="eyebrow">CLEANING AUDIT</div><h3>Less leakage. More honest results.</h3><div id="cleaning-steps"></div><a href="data/cleaning.json" download="cleaning-audit.json" class="text-link">Download full audit ↗</a></article><article class="panel limits-panel"><div class="eyebrow">READ THE LIMITS</div><h3>History is not the future.</h3><p id="temporal-note"></p><ul id="limitations"></ul></article></div>
@@ -97,7 +119,7 @@
       <article class="metric"><div>UNSEEN RECORDS <span>04</span></div><strong id="test-count">—</strong><p id="count-note"></p></article>
     </div>
     <div class="analysis-grid">
-      <article class="panel geography"><div class="panel-heading"><div class="eyebrow">01 / THE GEOGRAPHY</div><h2>A national footprint.</h2><p>Held-out incidents, aggregated into 0.25° cells.</p></div><div class="map-wrap"><svg id="map" viewBox="0 0 640 320" role="img" aria-label="Spatial distribution of held-out accidents in the contiguous United States"></svg><div class="map-tag">CONTIGUOUS UNITED STATES</div></div><div class="map-footer"><span><i class="map-dot"></i> Larger dots = more recorded incidents</span><span>Coverage ≠ road risk</span></div><div class="state-bars" id="state-bars"></div></article>
+      <article class="panel geography"><div class="panel-heading"><div class="eyebrow">01 / THE GEOGRAPHY</div><h2>Results on the map.</h2><p>Every held-out incident, grouped into 0.25° cells. Satellite view with roads, states and cities. Drag to move, scroll or use + / − to zoom down to street level, click a circle for its results. Switch to Street map at the top right.</p></div><div class="map-toolbar"><div class="map-legend" aria-label="Circle colour: share of correct predictions in the cell"><span class="map-legend-title">Correct predictions</span><span><i style="background:#3f6b4c"></i>90% +</span><span><i style="background:#9bb36f"></i>75–90%</span><span><i style="background:#c38a41"></i>60–75%</span><span><i style="background:#ac5746"></i>under 60%</span><span class="map-legend-size"><i></i> larger = more incidents</span></div><button type="button" id="map-reset">Reset view</button></div><div id="results-map" class="results-map" role="region" aria-label="Interactive map of held-out results. Drag to move, scroll to zoom."></div><p id="map-offline" class="map-offline" hidden>The map needs an internet connection to load the street map. All other results work offline.</p><div class="map-footer"><span>Satellite © Esri, Maxar, Earthstar Geographics · roads &amp; labels © Esri, HERE, Garmin, OpenStreetMap</span><span>Coverage ≠ road risk</span></div><div class="state-bars" id="state-bars"></div></article>
       <article class="panel confusion-panel"><div class="panel-heading"><div class="eyebrow">02 / THE ERRORS</div><h2>Actual meets predicted.</h2><p>Each row is an actual severity. Shading shows its share.</p></div><div class="matrix-axis">PREDICTED SEVERITY →</div><div id="confusion" class="matrix" role="group" aria-label="Confusion matrix. Rows are actual severity; columns are predicted severity. Focus each cell for details."></div><div class="matrix-note"><i></i><p>Diagonal cells are correct predictions.<br>Hover or focus any cell for its record count.</p></div></article>
     </div>
     <div class="analysis-grid secondary">
@@ -106,7 +128,12 @@
     </div>
   </section>
   <section id="predictions" class="records-section" aria-labelledby="pred-title"><div class="section-heading"><div><div class="eyebrow">THE PREDICTION LEDGER</div><h2 id="pred-title">Inspect the evidence.</h2><p>Every row below belongs to the untouched test set.</p></div><button id="export-csv" class="dark-button">Export filtered CSV <span>↓</span></button></div>
-    <div class="table-toolbar"><div class="segmented" aria-label="Filter prediction outcome"><button class="selected" data-outcome="all" aria-pressed="true">All predictions</button><button data-outcome="wrong" aria-pressed="false">Errors only</button><button data-outcome="right" aria-pressed="false">Correct only</button></div><div><label for="class-filter">Actual severity</label><select id="class-filter"><option value="all">All levels</option><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option></select></div></div>
+    <div class="filter-bar" role="group" aria-label="Filter predictions">
+      <label class="filter-field">State<select id="ledger-state"><option value="ALL">All states</option></select></label>
+      <label class="filter-field">Actual severity<select id="class-filter"><option value="all">All levels</option><option value="1">Level 1</option><option value="2">Level 2</option><option value="3">Level 3</option><option value="4">Level 4</option></select></label>
+      <div class="filter-field"><span id="outcome-label">Outcome</span><div class="segmented" role="group" aria-labelledby="outcome-label"><button class="selected" data-outcome="all" aria-pressed="true">All</button><button data-outcome="wrong" aria-pressed="false">Errors</button><button data-outcome="right" aria-pressed="false">Correct</button></div></div>
+      <div class="filter-summary"><strong id="filter-count">—</strong><span>matching records</span><button type="button" id="reset-filters" hidden>Reset filters</button></div>
+    </div>
     <div id="table-status" class="table-status" role="status" aria-live="polite"></div>
     <div class="table-scroll"><table class="prediction-table"><thead><tr><th>INCIDENT / LOCAL TIME</th><th>LOCATION</th><th>ACTUAL</th><th>PREDICTED</th><th>MODEL SCORE</th><th>RESULT</th><th><span class="sr-only">Details</span></th></tr></thead><tbody id="records"></tbody></table></div>
     <div class="table-footer"><span id="record-range"></span><div><button id="prev-page" aria-label="Previous page">←</button><span id="page-number"></span><button id="next-page" aria-label="Next page">→</button></div></div><p class="panel-footnote">Model scores are uncalibrated. They are not verified probabilities of being correct. Ledger order: state, actual class, outcome, then newest first within each group.</p>
@@ -155,7 +182,7 @@
       </aside>
     </div>
   </section>
-  <footer class="page-footer"><span>IMPACT / US ACCIDENTS OBSERVATORY</span><p>Data: <a href="https://arxiv.org/abs/1906.05409" target="_blank" rel="noreferrer">Moosavi et al.</a> · March 2023 release.<br>Fixed seed 42. Full dataset. Reproducible evaluation.</p><a href="#dataset">Back to top ↑</a></footer>
+  <footer class="page-footer"><span>US ACCIDENTS SEVERITY</span><p>Data: <a href="https://arxiv.org/abs/1906.05409" target="_blank" rel="noreferrer">Moosavi et al.</a>.<br>Source file: <span id="footer-source"></span>. Fixed seed 42. Reproducible evaluation.</p><a href="#dataset">Back to the dataset ↑</a></footer>
   </div>
 </main>
 </div>

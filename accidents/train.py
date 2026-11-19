@@ -64,7 +64,15 @@ def make_tree(config, y, n_estimators=None):
         random_state=SEED, n_jobs=8, verbosity=-1, deterministic=True, force_col_wise=True)
 
 
-def train(data=DATA, tune_rows=600_000, val_rows=160_000):
+def load_frame(data):
+    # Category columns are dictionary-backed to keep the full dataset within RAM.
+    table = pq.read_table(data / 'processed' / 'cleaned.parquet', columns=FEATURES + ['Start_Time'], read_dictionary=CAT)
+    frame = table.to_pandas(); del table; gc.collect()
+    return frame
+
+
+def train(data=DATA, tune_rows=600_000, val_rows=160_000, evaluate=True):
+    """Select, refit and save the model. With evaluate=False, stop before the test set."""
     reports = REPORTS; reports.mkdir(parents=True, exist_ok=True)
     model_dir = MODELS; model_dir.mkdir(parents=True, exist_ok=True)
     (data / 'splits').mkdir(parents=True, exist_ok=True)
@@ -76,10 +84,8 @@ def train(data=DATA, tune_rows=600_000, val_rows=160_000):
     tr, va = train_test_split(dev, test_size=0.2, stratify=y[dev], random_state=SEED)
     tune = cap_sample(tr, y, tune_rows); val = cap_sample(va, y, val_rows)
     np.savez_compressed(data / 'splits' / 'splits.npz', development=dev, test=test, tuning=tune, validation=val)
-    # Category columns are dictionary-backed to keep the full dataset within RAM.
     print(f'Loading {len(y):,} cleaned records; test = {len(test):,}', flush=True)
-    table = pq.read_table(data / 'processed' / 'cleaned.parquet', columns=FEATURES + ['Start_Time'], read_dictionary=CAT)
-    frame = table.to_pandas(); del table; gc.collect()
+    frame = load_frame(data)
     Xtr = frame.iloc[tune][FEATURES]; Xval = frame.iloc[val][FEATURES]
     ytr, yval = y[tune], y[val]
     results = []; pipelines = {}; configs = {}
@@ -171,8 +177,31 @@ def train(data=DATA, tune_rows=600_000, val_rows=160_000):
             final.fit(frame.iloc[dev][FEATURES], y[dev])
     refit_seconds = time.perf_counter() - tick
     joblib.dump(final, model_dir / 'severity.joblib', compress=3)
+    # Everything the test stage needs besides the model; written last, so it marks a finished training run.
+    state = {'results': results, 'best': best, 'importance': importance, 'temporal': temporal,
+             'refit_seconds': refit_seconds, 'training_seconds': time.perf_counter() - start}
+    (model_dir / 'training_state.json').write_text(json.dumps(state, indent=2, default=int), encoding='utf-8')
+    print(f'Saved model: {best["name"]}. The test set is still untouched.', flush=True)
+    if not evaluate:
+        return state
     return evaluate_and_save(data, reports, model_dir, frame, y, dev, test, tune, val,
                              results, best, importance, temporal, final, refit_seconds, start)
+
+
+def test(data=DATA):
+    """Score the untouched test split with the model saved by train(evaluate=False)."""
+    model_dir = MODELS; reports = REPORTS
+    state = json.loads((model_dir / 'training_state.json').read_text(encoding='utf-8'))
+    splits = np.load(data / 'splits' / 'splits.npz')
+    y = np.load(data / 'processed' / 'row_manifest.npz')['labels']
+    dev, test_idx, tune, val = [splits[k] for k in ['development', 'test', 'tuning', 'validation']]
+    print(f'Loading {len(y):,} cleaned records and the saved model', flush=True)
+    frame = load_frame(data)
+    final = joblib.load(model_dir / 'severity.joblib')
+    start = time.perf_counter() - state['training_seconds']
+    return evaluate_and_save(data, reports, model_dir, frame, y, dev, test_idx, tune, val,
+                             state['results'], state['best'], state['importance'], state['temporal'],
+                             final, state['refit_seconds'], start)
 
 
 def evaluate_and_save(data, reports, model_dir, frame, y, dev, test, tune, val,

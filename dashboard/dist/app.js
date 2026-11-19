@@ -10,7 +10,8 @@ let data, state = 'ALL', outcome = 'all', actual = 'all', page = 0, version = 0,
 const pageSize = 10, cache = new Map();
 
 async function getJSON(url) {
-  const response = await fetch(url);
+  // Revalidate every time: results change after each pipeline run.
+  const response = await fetch(url, {cache: 'no-cache'});
   if (!response.ok) throw new Error(`Could not load ${url} (${response.status})`);
   return response.json();
 }
@@ -37,7 +38,7 @@ function renderOverview() {
   $('recall').textContent = sev4.support ? pct(sev4.recall) : '—';
   $('recall-note').textContent = `${fmt(c.confusion[3][3])} of ${fmt(sev4.support)} level 4 events found`;
   $('test-count').textContent = short(c.rows);
-  $('count-note').textContent = state === 'ALL' ? '20% of the cleaned full dataset' : `${pct(c.rows / stats.test_rows)} of the national test set`;
+  $('count-note').textContent = state === 'ALL' ? '20% of the cleaned dataset' : `${pct(c.rows / stats.test_rows)} of the national test set`;
   renderMatrix(c); renderRecall(c); renderMap(); renderTimeline(c);
 }
 function renderMatrix(c) {
@@ -61,20 +62,70 @@ function renderRecall(c) {
     return `<div class="recall-row"><span class="level-tag" style="color:${colors[level-1]}">${level}</span><div><div class="bar-track"><i style="width:${100*v.recall}%;background:${colors[level-1]}"></i></div><div class="recall-meta">${fmt(v.support)} ACTUAL RECORDS · F1 ${v['f1-score'].toFixed(3)}</div></div><span class="recall-value">${v.support?pct(v.recall,0):'—'}</span></div>`;
   }).join('');
 }
-function renderMap() {
-  const points = data.geo.filter((r) => state==='ALL'||r[0]===state);
-  let svg = '';
-  for(let x=60;x<640;x+=105) svg += `<path d="M${x} 28V286" stroke="#e1e4da" stroke-width=".6" stroke-dasharray="2 5"/>`;
-  for(let y=50;y<300;y+=65) svg += `<path d="M20 ${y}H620" stroke="#e1e4da" stroke-width=".6" stroke-dasharray="2 5"/>`;
-  const max = Math.max(1,...points.map(r=>r[3]));
-  // Longitude scaled by cos(37°) relative to latitude; fixed contiguous-US extent.
-  points.forEach(([s,lon,lat,n]) => {
-    const x=25+(lon/4+125)/59*590, y=25+(50-lat/4)/26*270;
-    const radius=0.6+Math.sqrt(n/max)*3.8;
-    svg += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${radius.toFixed(2)}" fill="#526e45" opacity="${(.25+.6*Math.pow(n/max,.2)).toFixed(2)}"><title>${esc(stateName(s))} · ${lat/4}°, ${lon/4}° · ${fmt(n)} records</title></circle>`;
+// Interactive results map (Leaflet). Each geo row: [state, lon*4, lat*4, records, correct,
+// actual counts 1-4, predicted counts 1-4] for one 0.25° cell of the held-out test set.
+let resultsMap=null, mapLayer=null, mapPoints=[], mapStale=true, mapWatched=false;
+const accuracyColor=(a)=>a>=.9?'#3f6b4c':a>=.75?'#9bb36f':a>=.6?'#c38a41':'#ac5746';
+function cellPopup(r) {
+  const [s,lon,lat,n,ok]=r, act=r.slice(5,9), pred=r.slice(9,13);
+  return `<div class="map-pop"><b>${esc(stateName(s))}</b><small>${(lat/4).toFixed(2)}°, ${(lon/4).toFixed(2)}° · 0.25° cell</small>`+
+    `<div class="map-pop-kpi"><span>${fmt(n)}<small>incidents</small></span><span>${pct(ok/n,0)}<small>predicted correctly</small></span></div>`+
+    `<table><thead><tr><th>Severity</th><th>Actual</th><th>Predicted</th></tr></thead><tbody>${[0,1,2,3].map(i=>`<tr><td>${badge(i+1)}</td><td>${fmt(act[i])}</td><td>${fmt(pred[i])}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function createMap() {
+  resultsMap=L.map('results-map',{preferCanvas:true,minZoom:3,maxZoom:18,maxBounds:[[5,-170],[72,-40]],zoomSnap:.5});
+  // Esri tiles: free, no API key, attribution required. Satellite imagery with road and
+  // place-name overlays (states, counties, cities); a plain street map is one click away.
+  const esri='https://server.arcgisonline.com/ArcGIS/rest/services/';
+  const tiles=(path,options)=>L.tileLayer(`${esri}${path}/MapServer/tile/{z}/{y}/{x}`,{maxZoom:18,maxNativeZoom:17,...options});
+  // Roads and labels sit above the imagery (200) but below the result circles (400).
+  resultsMap.createPane('labels'); resultsMap.getPane('labels').style.zIndex=350; resultsMap.getPane('labels').style.pointerEvents='none';
+  const satellite=L.layerGroup([
+    tiles('World_Imagery',{maxNativeZoom:18,attribution:'Imagery &copy; Esri, Maxar, Earthstar Geographics, USDA, USGS'}),
+    tiles('Reference/World_Transportation',{pane:'labels',opacity:.9}),
+    tiles('Reference/World_Boundaries_and_Places',{pane:'labels'})]);
+  const streets=L.layerGroup([
+    tiles('World_Street_Map',{maxNativeZoom:18,attribution:'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors'})]);
+  satellite.addTo(resultsMap);
+  L.control.layers({'Satellite':satellite,'Street map':streets},null,{collapsed:false,position:'topright'}).addTo(resultsMap);
+  L.control.scale({imperial:true,metric:true}).addTo(resultsMap);
+  mapLayer=L.layerGroup().addTo(resultsMap);
+}
+function fitMap() {
+  const bounds=mapPoints.length?L.latLngBounds(mapPoints.map(r=>[r[2]/4,r[1]/4])):L.latLngBounds([[24,-125],[50,-66]]);
+  resultsMap.fitBounds(bounds,{padding:[24,24],maxZoom:9});
+}
+// Leaflet must first appear in a visible box, so the map is built and redrawn only when its
+// page is on screen; while hidden, new data just marks it stale.
+function drawMap() {
+  if(!$('results-map').offsetWidth){mapStale=true;return;}
+  if(!resultsMap)createMap(); else resultsMap.invalidateSize();
+  mapLayer.clearLayers();
+  const max=Math.max(1,...mapPoints.map(r=>r[3]));
+  // Largest cells first, so small ones stay clickable on top.
+  [...mapPoints].sort((a,b)=>b[3]-a[3]).forEach((r)=>{
+    const n=r[3], acc=r[4]/n;
+    L.circleMarker([r[2]/4,r[1]/4],{radius:3+Math.sqrt(n/max)*15,color:'#0b1a12',weight:.7,opacity:.8,fillColor:accuracyColor(acc),fillOpacity:.88})
+      .bindTooltip(`${fmt(n)} incidents · ${pct(acc,0)} correct`,{direction:'top'})
+      .bindPopup(()=>cellPopup(r),{maxWidth:260})
+      .addTo(mapLayer);
   });
-  svg += '<text x="20" y="310" fill="#8c9388" font-size="8" font-family="monospace">125°W</text><text x="592" y="310" fill="#8c9388" font-size="8" font-family="monospace">66°W</text>';
-  $('map').innerHTML = svg;
+  fitMap(); mapStale=false;
+}
+function renderMap() {
+  mapPoints = data.geo.filter((r) => state==='ALL'||r[0]===state);
+  if(!window.L){$('map-offline').hidden=false;$('results-map').hidden=true;}
+  else {
+    if(!mapWatched) {
+      mapWatched=true;
+      new ResizeObserver(([entry])=>{
+        if(!entry.contentRect.width)return;
+        if(mapStale)drawMap(); else resultsMap.invalidateSize();
+      }).observe($('results-map'));
+      $('map-reset').addEventListener('click',()=>{if(resultsMap)fitMap();});
+    }
+    drawMap();
+  }
   const top = Object.entries(data.cohorts).filter(([k])=>k!=='ALL').sort((a,b)=>b[1].rows-a[1].rows).slice(0,3);
   $('state-bars').innerHTML = top.map(([s,c])=>`<button class="state-bar" data-state="${esc(s)}" aria-label="Explore ${esc(stateName(s))}"><div>${esc(s)}<span>${pct(c.rows/data.stats.test_rows)}</span></div><div class="bar-track"><i style="width:${100*c.rows/top[0][1].rows}%"></i></div></button>`).join('');
 }
@@ -113,6 +164,8 @@ async function renderRecords() {
   const begin=page*pageSize, end=Math.min(begin+pageSize,count);
   $('prev-page').disabled=page===0;$('next-page').disabled=end>=count;
   $('page-number').textContent=`${fmt(page+1)} / ${fmt(Math.max(1,Math.ceil(count/pageSize)))}`;
+  $('filter-count').textContent=fmt(count);
+  $('reset-filters').hidden=state==='ALL'&&actual==='all'&&outcome==='all';
   $('record-range').textContent=count?`${fmt(begin+1)}–${fmt(end)} of ${fmt(count)} records`:'No matching records';
   $('table-status').textContent='Loading predictions…'; $('records').style.opacity='.4';
   try {
@@ -133,8 +186,12 @@ async function renderRecords() {
     if(request===version){$('records').innerHTML='';$('table-status').textContent='Prediction records could not be loaded. Change a filter or reload to retry.';notify(error.message);}
   } finally {if(request===version)$('records').style.opacity='1';}
 }
+function setOutcome(next) {
+  outcome=next;
+  document.querySelectorAll('[data-outcome]').forEach(x=>{const on=x.dataset.outcome===next;x.classList.toggle('selected',on);x.setAttribute('aria-pressed',String(on));});
+}
 function setState(next) {
-  state=next;$('state-filter').value=next;page=0;renderOverview();renderRecords();
+  state=next;$('state-filter').value=next;$('ledger-state').value=next;page=0;renderOverview();renderRecords();
 }
 function showDetails(row) {
   const r=currentRows[row];if(!r)return;
@@ -149,7 +206,7 @@ function renderMethod() {
   $('chosen-model').innerHTML=`<b>${esc(s.selected_model)}</b><br>Refit on all ${fmt(s.development_rows)} development records. ${s.selection.best_iteration?`${fmt(s.selection.best_iteration)} boosting rounds, frozen before test evaluation.`:''}`;
   const important=s.importance.filter(r=>r.macro_f1_drop>0).slice(0,7), max=important[0]?.macro_f1_drop||1;
   $('importance').innerHTML=important.map(r=>`<div class="importance-row"><span>${esc(r.feature.replaceAll('_',' '))}</span><div class="bar-track"><i style="width:${100*r.macro_f1_drop/max}%"></i></div><span>${r.macro_f1_drop.toFixed(3)}</span></div>`).join('');
-  const steps=[[c.counts.input_rows,'raw records read from the full archive'],[c.counts.repeated_event_rows_removed,'repeated time + location records removed'],[c.counts.weather_future,'raw rows with future weather observations masked'],[c.clean_rows,'clean, distinct event records retained'],[s.test_rows,'records held out for the final evaluation']];
+  const steps=[[c.counts.input_rows,'raw records read from the source file'],[c.counts.repeated_event_rows_removed,'repeated time + location records removed'],[c.counts.weather_future,'raw rows with future weather observations masked'],[c.clean_rows,'clean, distinct event records retained'],[s.test_rows,'records held out for the final evaluation']];
   $('cleaning-steps').innerHTML=steps.map(([n,description])=>`<div class="audit-step"><span>${short(n)}</span><p>${esc(description)}</p></div>`).join('');
   const t=s.temporal;
   $('temporal-note').innerHTML=t.macro_f1!==undefined?`The time-based stress test scored <b>${t.macro_f1.toFixed(3)} macro F1</b>: trained on a development sample before 2022, evaluated on ${fmt(t.evaluation_rows)} development records from 2022 onward. This diagnostic highlights how reporting patterns change.`:'A chronological stress test was not available for this dataset.';
@@ -207,33 +264,52 @@ async function init() {
     data=await getJSON('data/summary.json');
     if(!data.stats||!data.cohorts?.ALL||!Array.isArray(data.manifest))throw new Error('Results export is incomplete.');
     $('dataset-meta').textContent=`${fmt(data.cleaning.counts.input_rows)} SOURCE RECORDS / 4 CLASSES`;
+    $('source-file').textContent=$('footer-source').textContent=data.cleaning.source_file||'an unnamed file';
     Object.keys(data.cohorts).filter(s=>s!=='ALL').sort((a,b)=>stateName(a).localeCompare(stateName(b))).forEach(s=>{
-      const option=document.createElement('option');option.value=s;option.textContent=stateName(s);$('state-filter').append(option);
+      for(const id of ['state-filter','ledger-state']){const option=document.createElement('option');option.value=s;option.textContent=stateName(s);$(id).append(option);}
     });
     renderOverview();renderMethod();
     await initJourney();
-    $('content').hidden=false;$('loading').hidden=true;
+    document.querySelectorAll('.results-content').forEach(e=>{e.hidden=false;});$('loading').hidden=true;
     $('state-filter').addEventListener('change',e=>setState(e.target.value));
+    $('ledger-state').addEventListener('change',e=>setState(e.target.value));
+    $('reset-filters').addEventListener('click',()=>{actual='all';$('class-filter').value='all';setOutcome('all');setState('ALL');});
     $('reset-state').addEventListener('click',()=>setState('ALL'));
     $('state-bars').addEventListener('click',e=>{const b=e.target.closest('[data-state]');if(b)setState(b.dataset.state);});
     $('class-filter').addEventListener('change',e=>{actual=e.target.value;page=0;renderRecords();});
-    document.querySelectorAll('[data-outcome]').forEach(b=>b.addEventListener('click',()=>{
-      outcome=b.dataset.outcome;page=0;
-      document.querySelectorAll('[data-outcome]').forEach(x=>{const on=x===b;x.classList.toggle('selected',on);x.setAttribute('aria-pressed',String(on));});
-      renderRecords();
-    }));
+    document.querySelectorAll('[data-outcome]').forEach(b=>b.addEventListener('click',()=>{setOutcome(b.dataset.outcome);page=0;renderRecords();}));
     $('prev-page').addEventListener('click',()=>{if(page>0){page--;renderRecords();}});
     $('next-page').addEventListener('click',()=>{page++;renderRecords();});
     $('records').addEventListener('click',e=>{const b=e.target.closest('[data-row]');if(b)showDetails(Number(b.dataset.row));});
     $('close-dialog').addEventListener('click',()=>$('detail-dialog').close());
     $('detail-dialog').addEventListener('click',e=>{if(e.target===$('detail-dialog')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close();}});
     $('export-csv').addEventListener('click',exportCSV);
-    const observer=new IntersectionObserver(entries=>{
-      for(const entry of entries)if(entry.isIntersecting)document.querySelectorAll('.nav-link').forEach(a=>a.classList.toggle('active',a.hash===`#${entry.target.id}`));
-    },{rootMargin:'-10% 0px -70% 0px'});
-    ['dataset','cleaning','features','split','method','overview','predictions','try-model'].forEach(id=>observer.observe($(id)));
     await renderRecords();
   } catch(error) {$('loading').hidden=true;$('fatal').hidden=false;console.error(error);}
 }
+// One section at a time: the URL hash picks it, the sidebar marks it, the page starts at its top.
+const SECTIONS=['dataset','cleaning','features','split','pipeline','method','overview','predictions','try-model'];
+let shown='dataset';
+function showSection() {
+  const wanted=location.hash.slice(1);
+  if(SECTIONS.includes(wanted))shown=wanted;
+  SECTIONS.forEach(id=>{$(id).hidden=id!==shown;});
+  if(shown==='overview'&&mapWatched){if(mapStale)drawMap();else resultsMap.invalidateSize();}
+  document.querySelectorAll('.nav-link').forEach(a=>{
+    const on=a.hash===`#${shown}`;a.classList.toggle('active',on);
+    if(on){a.setAttribute('aria-current','page');a.closest('details').open=true;}else a.removeAttribute('aria-current');
+  });
+  window.scrollTo({top:0,behavior:'instant'});
+}
+window.addEventListener('hashchange',showSection);
+// Handle section links ourselves so the browser never animates a jump to an anchor.
+document.addEventListener('click',e=>{
+  const a=e.target.closest('a[href^="#"]');
+  if(!a||e.ctrlKey||e.metaKey||e.shiftKey||!SECTIONS.includes(a.hash.slice(1)))return;
+  e.preventDefault();
+  if(location.hash!==a.hash)history.pushState(null,'',a.hash);
+  showSection();
+});
+window.addEventListener('popstate',showSection);
 // Start after every deferred companion script has defined its functions.
-document.addEventListener('DOMContentLoaded', init, {once:true});
+document.addEventListener('DOMContentLoaded',()=>{showSection();init();},{once:true});

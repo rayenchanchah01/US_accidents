@@ -1,0 +1,99 @@
+/* Sidebar: the whole column stays in view as one block (scrolls on its own if taller than the
+   window), so the menu never slides over the notes below it. */
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;align-self:start;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.sidebar nav{position:static}
+.sidebar-footer{padding-top:40px}
+/* Two collapsible groups with sub-pages. */
+.nav-group{margin:0 -9px 10px}
+.nav-group summary{list-style:none;display:flex;align-items:center;gap:12px;padding:12px 9px;font-size:13px;font-weight:600;cursor:pointer;user-select:none}
+.nav-group summary::-webkit-details-marker{display:none}
+.nav-group summary span{font:10px var(--mono);color:var(--muted);font-weight:400}
+.nav-group summary:after{content:'›';margin-left:auto;font-size:18px;line-height:1;color:var(--muted);transition:transform .15s}
+.nav-group[open] summary:after{transform:rotate(90deg)}
+.nav-group summary:hover{background:#e5e8dc}
+.nav-group summary:focus-visible{outline:2px solid #ac5746;outline-offset:2px}
+.nav-group .nav-link{margin:0 0 2px 22px;padding:9px 9px 9px 12px;border-left:1px solid var(--line);font-size:12px}
+.nav-group .nav-link.active{border-left:2px solid var(--ink);padding-left:11px;font-weight:600}
+@media(prefers-reduced-motion:reduce){.nav-group summary:after{transition:none}}
+/* One section on screen at a time: switch instantly, no separators between neighbours. */
+html{scroll-behavior:auto}
+#main .journey-section,#main .method-section,#main .records-section{border-top:0;margin-top:0;padding-top:0}
+
+/* Pipeline controls and the unified results filter bar. */
+.inline-link{color:var(--ink);border-bottom:1px solid var(--ink);white-space:nowrap}
+.source-file{font:12px var(--mono);color:var(--ink);word-break:break-all}
+#fatal a{border-bottom:1px solid var(--ink);color:var(--ink)}
+
+/* Pipeline */
+.pipeline-section{scroll-margin-top:25px}
+.pipeline-offline{border:1px solid var(--s4);color:var(--s4);background:#f6ece8;padding:14px 18px;font-size:12px;margin-bottom:18px}
+.pipeline-offline code{font:12px var(--mono)}
+.pipeline-steps{list-style:none;margin:0 0 18px;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);background:var(--panel)}
+.pipe-step{padding:22px 22px 24px;display:flex;flex-direction:column;gap:10px;min-width:0;position:relative}
+.pipe-step+.pipe-step{border-left:1px solid var(--line)}
+.pipe-step.is-running{background:#fff}
+.pipe-step.is-running:after{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,var(--ink) 0 30%,transparent 30%);background-size:200% 100%;animation:pipe-run 1.4s linear infinite}
+@keyframes pipe-run{from{background-position:100% 0}to{background-position:-100% 0}}
+@media(prefers-reduced-motion:reduce){.pipe-step.is-running:after{animation:none;background:var(--ink)}}
+.pipe-top{display:flex;justify-content:space-between;align-items:center}
+.pipe-no{font:10px var(--mono);width:24px;height:24px;border:1px solid var(--ink);display:inline-flex;align-items:center;justify-content:center}
+.pipe-state{font:9px var(--mono);letter-spacing:.8px;text-transform:uppercase;color:var(--muted);padding:4px 8px;border:1px solid var(--line)}
+.pipe-state.done{color:var(--s2);border-color:var(--s2)}
+.pipe-state.running{color:var(--ink);border-color:var(--ink);background:var(--lime)}
+.pipe-state.failed{color:var(--s4);border-color:var(--s4)}
+.pipe-step h3{font-size:22px}
+.pipe-step p{font-size:11px;line-height:1.6;flex:1}
+.pipe-step p b{display:block;font:12px var(--mono);color:var(--ink);word-break:break-all;font-weight:400}
+.pipe-step p span{display:block;margin-top:4px}
+.pipe-step .dark-button{align-self:flex-start}
+.pipe-progress{height:4px;background:var(--line)}
+.pipe-progress i{display:block;height:100%;width:0;background:var(--ink);transition:width .2s}
+.job-panel .job-head{padding:18px 22px 0}
+.job-panel .job-head p{font-size:12px;margin-top:8px;color:var(--ink)}
+#job-log{margin:14px 22px 22px;max-height:220px;overflow:auto;background:#fff;border:1px solid var(--line);padding:12px 14px;font:11px/1.6 var(--mono);color:var(--ink);white-space:pre-wrap;word-break:break-word}
+
+/* Results filters: one aligned bar, labels above controls, live count and a single reset. */
+.filter-bar{display:grid;grid-template-columns:minmax(150px,1fr) minmax(130px,.8fr) auto minmax(170px,1fr);gap:22px;align-items:end;padding:16px 20px;border:1px solid var(--line);background:var(--panel);margin-bottom:0}
+.filter-field{display:flex;flex-direction:column;gap:7px;font:9px var(--mono);letter-spacing:.8px;text-transform:uppercase;color:var(--muted);min-width:0}
+.filter-field select{font:12px var(--sans);letter-spacing:0;text-transform:none;color:var(--ink);height:34px;width:100%}
+.filter-field .segmented{height:34px;align-items:stretch}
+.filter-field .segmented button{font:11px var(--sans);text-transform:none;letter-spacing:0;padding:0 14px}
+.filter-summary{display:flex;align-items:baseline;justify-content:flex-end;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+.filter-summary strong{font:24px/1 var(--sans);font-weight:400;color:var(--ink);letter-spacing:-.5px}
+.filter-summary button{border:0;border-bottom:1px solid var(--ink);padding:2px 0;font-size:11px;margin-left:8px;background:none}
+.filter-summary button:hover:not(:disabled){background:none;color:var(--s4);border-color:var(--s4)}
+.filter-bar+.table-status:not(:empty){padding:10px 0}
+#predictions .table-scroll{border-top:0}
+
+/* Header title: plain type, no logo. */
+.title-mark{display:flex;flex-direction:column;gap:6px}
+.title-main{font:30px/1.1 var(--serif);letter-spacing:-.6px;color:var(--ink)}
+.title-main em{font-style:italic;color:#6a8054}
+.title-sub{font:10px var(--mono);letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+/* Layout: one card per row on every page; nothing sits beside another card. */
+.metric-strip,.cleaning-flow,.transformation-pair,.analysis-grid,.analysis-grid.secondary,.method-grid,.pipeline-steps,.predict-layout{grid-template-columns:minmax(0,1fr)}
+.metric{min-height:0}
+.metric+.metric{border-left:0;border-top:1px solid var(--line)}
+.pipe-step+.pipe-step{border-left:0;border-top:1px solid var(--line)}
+.predict-output{position:static}
+/* Results map (Leaflet): Google-Maps-style drag and zoom over a light street basemap. */
+.map-toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:16px 25px}
+.map-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;font-size:11px;color:var(--muted)}
+.map-legend-title{font:9px var(--mono);letter-spacing:.8px;text-transform:uppercase;color:var(--ink)}
+.map-legend span{display:inline-flex;align-items:center;gap:6px}
+.map-legend i{width:11px;height:11px;border-radius:50%;display:inline-block}
+.map-legend-size i{width:14px;height:14px;border:1px solid var(--muted);background:none}
+#map-reset{padding:8px 14px;font-size:11px}
+.results-map{height:560px;margin:0 25px 18px;border:1px solid var(--line);background:#f5f5f3;z-index:0}
+.results-map .leaflet-control-attribution{font-size:9px}
+.map-offline{margin:0 25px 18px;padding:14px 18px;border:1px solid var(--line);font-size:12px}
+.map-pop{font:12px var(--sans);color:var(--ink);min-width:200px}
+.map-pop b{display:block;font:18px var(--serif)}
+.map-pop>small{display:block;font:10px var(--mono);color:var(--muted);margin:2px 0 10px}
+.map-pop-kpi{display:flex;gap:18px;padding:8px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-bottom:8px}
+.map-pop-kpi span{font-size:20px;display:flex;flex-direction:column;line-height:1.1}
+.map-pop-kpi small{font-size:10px;color:var(--muted)}
+.map-pop table{width:100%;border-collapse:collapse;font-size:11px}
+.map-pop th{font:9px var(--mono);color:var(--muted);text-align:left;padding:3px 0;font-weight:400}
+.map-pop td{padding:3px 0}
+.map-pop .severity{padding:2px 6px}

@@ -22,9 +22,9 @@ with sync_playwright() as p:
     def delayed_journey(route):
         time.sleep(0.5)
         route.continue_()
-    page.route('**/journey.js', delayed_journey)
+    page.route('**/journey.js*', delayed_journey)
     response = page.goto('http://127.0.0.1:8765', wait_until='networkidle')
-    page.unroute('**/journey.js')
+    page.unroute('**/journey.js*')
     assert response.status == 200
     page.locator('#records tr').first.wait_for()
     assert page.locator('#content').is_visible()
