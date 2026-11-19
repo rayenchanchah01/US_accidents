@@ -1,5 +1,15 @@
 # Verification
 
+## Interactive prediction form (2026-11-19)
+
+- Added **Try the model** after the prediction ledger. Primary controls follow the saved validation permutation importance; optional weather and road values remain missing unless entered. Location suggestions use the fitted training vocabulary.
+- The local dashboard server loads the saved model once and exposes schema and prediction endpoints. Inference reuses the existing cleaning and encoding pipeline; derived time and road features are calculated automatically. Target and outcome fields are rejected.
+- **42 Python tests passed**: 28 new inference/API tests and all 14 existing tests. Checks include exact score parity with the saved model for a preview incident and an edited scenario, input validation, missingness, date/category warnings, JSON responses and unavailable-model handling.
+- Desktop and 390px mobile Chrome checks pass: actual predictions, four class scores, all 36 model inputs, stale-result clearing, error recovery, static-server guidance, existing dashboard controls and exports, no page overflow and no JavaScript page errors.
+- Fixed an existing script-loading race by initializing after deferred scripts finish. Browser verification deliberately delays `journey.js` to cover this case.
+- JavaScript syntax checks and `git diff --check` pass. Prediction screenshots are generated at `outputs/reports/qa/prediction-desktop.png` and `prediction-mobile.png`.
+- This update runs locally through `python serve_dashboard.py`; the existing static hosted site was not republished. The saved model and training artifacts were reused without retraining.
+
 ## Dataset walkthrough update (2026-11-16)
 
 - All project Markdown files now live in `docs/`. Generated report writers and notebook readers use that location. The canonical notebook is `pipeline/pipeline.ipynb`; the empty `notebooks/` folder was removed.

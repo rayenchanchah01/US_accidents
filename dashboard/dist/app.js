@@ -231,8 +231,9 @@ async function init() {
     const observer=new IntersectionObserver(entries=>{
       for(const entry of entries)if(entry.isIntersecting)document.querySelectorAll('.nav-link').forEach(a=>a.classList.toggle('active',a.hash===`#${entry.target.id}`));
     },{rootMargin:'-10% 0px -70% 0px'});
-    ['dataset','cleaning','features','split','method','overview','predictions'].forEach(id=>observer.observe($(id)));
+    ['dataset','cleaning','features','split','method','overview','predictions','try-model'].forEach(id=>observer.observe($(id)));
     await renderRecords();
   } catch(error) {$('loading').hidden=true;$('fatal').hidden=false;console.error(error);}
 }
-init();
+// Start after every deferred companion script has defined its functions.
+document.addEventListener('DOMContentLoaded', init, {once:true});

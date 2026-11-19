@@ -2,6 +2,7 @@
 import csv
 import io
 import json
+import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -14,9 +15,16 @@ with sync_playwright() as p:
     context = browser.new_context(viewport={'width': 1440, 'height': 1100}, device_scale_factor=1)
     # Exercise the ordinary browser-download fallback without an OS picker.
     context.add_init_script("Object.defineProperty(window, 'showSaveFilePicker', {value: undefined, configurable: true});")
-    page = context.new_page(); errors = []
-    page.on('pageerror', lambda error: errors.append(str(error)))
+    errors = []
+    context.on('page', lambda tab: tab.on('pageerror', lambda error: errors.append(str(error))))
+    page = context.new_page()
+    # Companions may arrive after app.js; initialization must await deferred scripts.
+    def delayed_journey(route):
+        time.sleep(0.5)
+        route.continue_()
+    page.route('**/journey.js', delayed_journey)
     response = page.goto('http://127.0.0.1:8765', wait_until='networkidle')
+    page.unroute('**/journey.js')
     assert response.status == 200
     page.locator('#records tr').first.wait_for()
     assert page.locator('#content').is_visible()
@@ -24,7 +32,7 @@ with sync_playwright() as p:
     assert page.locator('#macro').inner_text() == f"{summary['stats']['test']['macro_f1']:.3f}"
     assert page.locator('#records tr').count() == 10
     assert page.locator('#dataset-rows tr').count() == 10
-    assert page.locator('#content > section').evaluate_all('(els) => els.map(e => e.id)') == ['dataset','cleaning','features','split','method','overview','predictions']
+    assert page.locator('#content > section').evaluate_all('(els) => els.map(e => e.id)') == ['dataset','cleaning','features','split','method','overview','predictions','try-model']
     assert '6,000' in page.locator('#sample-scope').inner_text()
     # Feature selection, filtering, pagination and sorting on the real preview.
     page.select_option('#dataset-state', 'CA')
@@ -105,6 +113,32 @@ with sync_playwright() as p:
         page.select_option('#state-filter', zero); page.select_option('#class-filter', '1')
         page.wait_for_function("document.getElementById('table-status').textContent === ''")
         assert 'No matching records' in page.locator('#record-range').inner_text()
+    # Submit a real scenario through the saved Python pipeline, then edit it.
+    page.locator('#predict-controls').wait_for()
+    page.wait_for_function("!document.getElementById('predict-controls').disabled")
+    page.click('#predict-example')
+    with page.expect_response('**/api/predict') as prediction:
+        page.click('#predict-submit')
+    result = prediction.value.json()
+    page.locator('#predict-result').wait_for(state='visible')
+    assert page.locator('#predict-level').inner_text() == f"Level {result['severity']}"
+    assert page.locator('.predict-score').count() == 4
+    assert page.locator('#predict-feature-values > div').count() == 36
+    page.locator('#try-model').screenshot(path=str(ART / 'prediction-desktop.png'))
+    page.fill('#predict-time', '2026-11-19T17:30')
+    assert not page.locator('#predict-result').is_visible()
+    page.click('#predict-submit')
+    page.locator('#predict-result').wait_for(state='visible')
+    assert 'outside' in page.locator('#predict-warnings').inner_text()
+    page.route('**/api/predict', lambda route: route.fulfill(status=503, content_type='application/json', body='{"error":"Model temporarily unavailable."}'))
+    page.click('#predict-submit')
+    page.locator('#predict-error').wait_for(state='visible')
+    assert not page.locator('#predict-result').is_visible()
+    assert page.locator('#predict-submit').is_enabled()
+    page.unroute('**/api/predict')
+    page.click('#predict-reset')
+    assert page.locator('#predict-city').input_value() == ''
+    assert not page.locator('#predict-result').is_visible()
     mobile = context.new_page()
     mobile.set_viewport_size({'width':390,'height':844})
     mobile.goto('http://127.0.0.1:8765',wait_until='networkidle')
@@ -117,6 +151,15 @@ with sync_playwright() as p:
     assert mobile.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
     mobile.click('#columns-default')
     mobile.click('.column-picker summary')
+    mobile.wait_for_function("!document.getElementById('predict-controls').disabled")
+    mobile.click('#predict-example')
+    mobile.click('#predict-submit')
+    mobile.locator('#predict-result').wait_for(state='visible')
+    assert mobile.locator('.predict-score').count() == 4
+    mobile.click('.predict-advanced > summary')
+    assert mobile.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+    mobile.locator('#try-model').screenshot(path=str(ART / 'prediction-mobile.png'))
+    mobile.click('.predict-advanced > summary')
     mobile.evaluate("window.scrollTo({top:0,behavior:'instant'})")
     mobile.screenshot(path=str(ART / 'dashboard-mobile.png'),full_page=True)
     mobile.screenshot(path=str(ART / 'dashboard-mobile-top.png'))
@@ -124,6 +167,13 @@ with sync_playwright() as p:
     broken.route('**/data/summary.json',lambda route:route.fulfill(status=503,body='Unavailable'))
     broken.goto('http://127.0.0.1:8765',wait_until='networkidle')
     assert broken.locator('#fatal').is_visible()
+    offline = context.new_page()
+    offline.route('**/api/prediction-schema', lambda route: route.fulfill(status=404, content_type='text/html', body='Not found'))
+    offline.goto('http://127.0.0.1:8765', wait_until='networkidle')
+    assert offline.locator('#predict-retry').is_visible()
+    assert 'python serve_dashboard.py' in offline.locator('#predict-connection').inner_text()
+    assert offline.locator('#predict-submit').is_disabled()
+    assert offline.locator('#content').is_visible()
     assert not errors, errors
     browser.close()
-print('PASS: desktop/mobile, actual metrics, filters, pagination, detail dialog, CSV export, failure state, no JavaScript errors')
+print('PASS: desktop/mobile, metrics, filters, CSV export, live predictions, edited inputs, missing API, prediction failure, no JavaScript errors')

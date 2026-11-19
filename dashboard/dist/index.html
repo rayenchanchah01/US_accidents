@@ -8,8 +8,10 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' fill='%23253831'/%3E%3Cpath d='M15 6v28M25 6v28' stroke='%23f3f2ec' stroke-width='3'/%3E%3Cpath d='M20 6v8m0 6v8' stroke='%23d6f171' stroke-width='2'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="journey.css">
+  <link rel="stylesheet" href="predict.css">
   <script src="app.js" defer></script>
   <script src="journey.js" defer></script>
+  <script src="predict.js" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to dataset</a>
@@ -29,6 +31,7 @@
     <a class="nav-link" href="#method"><span>05</span> Model comparison <b>&#8599;</b></a>
     <a class="nav-link" href="#overview"><span>06</span> Results <b>&#8599;</b></a>
     <a class="nav-link" href="#predictions"><span>07</span> Prediction ledger <b>&#8599;</b></a>
+    <a class="nav-link" href="#try-model"><span>08</span> Try the model <b>&#8599;</b></a>
   </nav>
   <div class="side-note"><span class="status-dot"></span> HOLDOUT EVALUATION<p>Real records.<br>Unseen during training.</p><div class="split-mini"><span></span><i></i></div><div class="split-labels"><span>80% training</span><span>20% test</span></div></div>
   <div class="legend-block"><div class="side-title">TRAFFIC IMPACT</div><p><i class="swatch s1"></i> 1 <span>Least impact</span></p><p><i class="swatch s2"></i> 2 <span>Level two</span></p><p><i class="swatch s3"></i> 3 <span>Level three</span></p><p><i class="swatch s4"></i> 4 <span>Highest impact</span></p><small>Severity describes traffic disruption, not injury severity.</small></div>
@@ -107,6 +110,50 @@
     <div id="table-status" class="table-status" role="status" aria-live="polite"></div>
     <div class="table-scroll"><table class="prediction-table"><thead><tr><th>INCIDENT / LOCAL TIME</th><th>LOCATION</th><th>ACTUAL</th><th>PREDICTED</th><th>MODEL SCORE</th><th>RESULT</th><th><span class="sr-only">Details</span></th></tr></thead><tbody id="records"></tbody></table></div>
     <div class="table-footer"><span id="record-range"></span><div><button id="prev-page" aria-label="Previous page">←</button><span id="page-number"></span><button id="next-page" aria-label="Next page">→</button></div></div><p class="panel-footnote">Model scores are uncalibrated. They are not verified probabilities of being correct. Ledger order: state, actual class, outcome, then newest first within each group.</p>
+  </section>
+  <section id="try-model" class="journey-section" aria-labelledby="try-model-title">
+    <div class="section-heading"><div><div class="eyebrow">TRY THE TRAINED MODEL</div><h2 id="try-model-title">Your inputs. A new prediction.</h2><p>Describe an incident to predict its traffic-impact severity, from level 1 to level 4.</p></div></div>
+    <div class="predict-context"><p><b>The strongest signals come first.</b> Location, date, road type and traffic signals lead this form because they rank highest in the saved validation results. The date supplies year, month, hour and weekday automatically.</p><details><summary>Why these inputs?</summary><p>Ranked by the drop in macro F1 when each feature is shuffled on 12,000 validation records. One repeat; related features can share importance.</p><ol id="predict-importance"></ol></details></div>
+    <p id="predict-connection" role="status" aria-live="polite">Loading the saved model…</p><button id="predict-retry" type="button" hidden>Retry model connection</button>
+    <div class="predict-layout">
+      <form id="predict-form">
+        <fieldset id="predict-controls" disabled>
+          <div class="predict-form-heading"><h3>Incident details</h3><button type="button" id="predict-example">Load a real example</button></div>
+          <p class="predict-help" id="predict-example-note">Enter your own values, or start with an incident from the dataset preview.</p>
+          <div class="predict-fields">
+            <label for="predict-state">State <span class="input-rank">#1 signal</span><select name="State" id="predict-state" required><option value="">Choose a state</option></select></label>
+            <label for="predict-time">Local date & time <span class="input-rank">#2, #3, #7</span><input name="Start_Time" id="predict-time" type="datetime-local" min="1900-01-01T00:00" max="2100-12-31T23:59" step="any" required aria-describedby="predict-date-help"></label>
+            <label for="predict-county">County <span class="input-rank">#4 signal</span><input name="County" id="predict-county" list="predict-counties" placeholder="Choose a state first" maxlength="120" required autocomplete="off"><datalist id="predict-counties"></datalist></label>
+            <label for="predict-city">City <span class="input-rank">#5 signal</span><input name="City" id="predict-city" list="predict-cities" placeholder="Choose a state first" maxlength="120" required autocomplete="off"><datalist id="predict-cities"></datalist></label>
+            <label for="predict-highway">Road type <span class="input-rank">#6 signal</span><select name="Is_Highway" id="predict-highway" required><option value="">Choose road type</option><option value="1">Highway / freeway / interstate</option><option value="0">Other road</option></select></label>
+            <label for="predict-signal">Traffic signal nearby <span class="input-rank">#8 signal</span><select name="Traffic_Signal" id="predict-signal"><option value="">Unknown</option><option value="1">Yes</option><option value="0">No</option></select></label>
+            <label for="predict-lat">Latitude<input name="Start_Lat" id="predict-lat" type="number" min="-90" max="90" step="any" placeholder="e.g. 39.758274" required></label>
+            <label for="predict-lng">Longitude<input name="Start_Lng" id="predict-lng" type="number" min="-180" max="180" step="any" placeholder="e.g. -84.230507" required></label>
+            <label for="predict-junction">Junction nearby<select name="Junction" id="predict-junction"><option value="">Unknown</option><option value="1">Yes</option><option value="0">No</option></select></label>
+            <label for="predict-light">Daylight<select name="Sunrise_Sunset" id="predict-light"><option value="Unknown">Unknown</option><option value="Day">Day</option><option value="Night">Night</option></select></label>
+          </div>
+          <p id="predict-date-help" class="predict-help">Use the incident’s local time and coordinates. The study covers 2016–March 2023; results for other dates are unverified.</p>
+          <details class="predict-advanced"><summary>Weather & additional road details <span>Optional</span></summary>
+            <fieldset><legend>Weather at incident time</legend><p class="predict-help">Enter observations available at the incident time. Leave anything you do not know blank.</p><div id="predict-weather" class="predict-fields"></div></fieldset>
+            <fieldset><legend>Other nearby road features</legend><p class="predict-help">Unknown stays missing. The total road-feature count is calculated only when all 12 road features are known.</p><div id="predict-roads" class="predict-fields"></div></fieldset>
+          </details>
+          <div class="predict-actions"><button type="submit" class="dark-button" id="predict-submit">Predict severity</button><button type="reset" id="predict-reset">Clear inputs</button></div>
+        </fieldset>
+      </form>
+      <aside class="predict-output" aria-labelledby="predict-output-title">
+        <div class="eyebrow">MODEL OUTPUT</div><h3 id="predict-output-title">A scenario to explore.</h3>
+        <p id="predict-status" role="status" aria-live="polite">Complete the incident details and run a prediction.</p>
+        <p id="predict-error" role="alert" hidden></p>
+        <div id="predict-result" hidden>
+          <div class="predict-verdict"><span>Predicted traffic impact</span><strong id="predict-level"></strong><p id="predict-impact"></p></div>
+          <div class="predict-score-heading">SCORES ACROSS ALL FOUR CLASSES</div><div id="predict-scores"></div>
+          <p class="predict-help">These are uncalibrated model scores, not verified probabilities.</p>
+          <ul id="predict-warnings"></ul>
+          <details class="predict-feature-details"><summary>Inspect the model inputs</summary><p class="predict-help">All 36 values sent to the saved model, including derived features and missing inputs.</p><dl id="predict-feature-values"></dl></details>
+        </div>
+        <div class="predict-model-note"><span id="predict-model-name">Saved LightGBM model</span><p>Predicts traffic disruption for an incident, not injury severity or the chance of an accident.</p></div>
+      </aside>
+    </div>
   </section>
   <footer class="page-footer"><span>IMPACT / US ACCIDENTS OBSERVATORY</span><p>Data: <a href="https://arxiv.org/abs/1906.05409" target="_blank" rel="noreferrer">Moosavi et al.</a> · March 2023 release.<br>Fixed seed 42. Full dataset. Reproducible evaluation.</p><a href="#dataset">Back to top ↑</a></footer>
   </div>
